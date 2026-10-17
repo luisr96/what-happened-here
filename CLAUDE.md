@@ -60,7 +60,7 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
 | database | Events + places, spatial/time queries | Postgres + PostGIS | Hosted Postgres |
 | follower | Keep DB current via recent-changes polling | Small Spring Boot app | GitHub Actions on a schedule |
 | api | Serves the frontend | Spring Boot | Hosted container |
-| frontend | Map, time slider, "what happened here" | Kepler.gl | Static hosting |
+| frontend | Map, time slider, "what happened here" | deck.gl on MapLibre (free tiles, no token); React + Vite; Vitest + Playwright | Static hosting |
 
 ### Importer flow
 1. Stream the dump; extractor emits candidate events (with place QIDs) and the importer also
@@ -116,6 +116,9 @@ periodic full re-import from a fresh dump is the safety net.
   (add subprojects as they're needed). Base package `io.github.luisr96.whathappenedhere`.
 - Jackson streaming for the dump; Spring Batch for the importer; Postgres + PostGIS;
   Flyway migrations; Testcontainers for DB tests; Docker for deployment.
+- Frontend: deck.gl layers over a MapLibre basemap with free tiles (no API token), built with npm
+  outside Gradle. Not Kepler.gl: the API already filters by viewport and time server-side, so
+  Kepler's client-side dataset model isn't needed.
 
 ## Workflow for every feature
 1. **Tests first**: delegate to the `test-writer` agent with the feature description. It writes
