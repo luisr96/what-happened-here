@@ -1,4 +1,4 @@
-# What Happened Here — project context
+# What Happened Here
 
 ## The idea
 A web app where you pick any place on Earth and any window of time and see what happened there,
@@ -14,7 +14,9 @@ Wikidata.
   never loaded into memory whole.
 - Keeping current: poll Wikidata's recent-changes API for items edited since the last run,
   refetch those entities, run them through the same extractor, upsert/delete.
-- Importance = sitelinks count (number of language Wikipedias with an article on the item).
+- Importance = number of Wikipedia sitelinks: keys ending in `wiki`, excluding non-Wikipedia
+  projects such as `commonswiki`, `specieswiki`, `wikidatawiki`, `metawiki`, `mediawikiwiki`.
+  Wikivoyage/Wikiquote/Wikisource etc. don't count (Rome: 344 sitelinks, 274 Wikipedias).
 
 ## What counts as an event
 An event is **(item, kind of moment, when, where)**. One item can produce several events
@@ -35,12 +37,19 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
 ### Rules for every kind
 - Gate: item must have at least one Wikipedia sitelink.
 - Ranks: use preferred-rank statements if any, else normal; never deprecated.
-- Multiple values: pick the single best-ranked value; don't emit duplicate events.
+- Multiple values: pick the single best-ranked value; don't emit duplicate events. Tie-break
+  among equal ranks: the earliest date (deterministic; e.g. Eiffel Tower's two P1619 values).
+- Statements with snaktype `somevalue` or `novalue` carry no value; skip them.
 - Dates: keep precision (day/month/year/decade/century/millennium), support BC years,
   record calendar (Julian vs Gregorian). UI shows e.g. "c. 1200s", never a fake exact date.
 - Place given as another item (P276, P19, P20, P159, P131): store the place QID; coordinates are
   resolved later from a separate places table (never copied into the event).
-- Exclusions: fictional items, coordinates not on Earth (check globe), future dates,
+- Coordinates keep their stated precision (degrees); a 1-degree point (Lisbon 1755, at sea) must
+  be distinguishable from an exact one so the UI can show it as approximate.
+- Dates: a value claiming more precision than it carries (e.g. `+1887-00-00` at day precision) is
+  broken and dropped; fields below the stated precision are cleared to 0.
+- Exclusions: fictional items (detected via P31 types, e.g. Q15632617 fictional human; there is
+  no single "fictional" flag), coordinates not on Earth (globe must be Q2), future dates,
   broken dates. Further exclusions are decided from looking at sample output, not guessed upfront.
 
 ## Architecture
@@ -79,8 +88,8 @@ periodic full re-import from a fresh dump is the safety net.
 2. Head of the dump: stop after the first N (e.g. 100,000) entities. Minutes, real data.
    Unresolved places are expected here (place may be outside the slice) — measure, don't fix.
 3. Full dump only after 1 and 2 look right.
-After each run, report: events per kind, % with resolved place, most common P31 types per kind
-(junk detector), distribution of dates and precisions.
+   After each run, report: events per kind, % with resolved place, most common P31 types per kind
+   (junk detector), distribution of dates and precisions.
 
 ## Build order
 1. extractor + test cases
@@ -91,8 +100,30 @@ After each run, report: events per kind, % with resolved place, most common P31 
 6. full import (Spring Batch)
 7. follower on GitHub Actions
 
+## Extractor model (target design)
+- `ExtractedItem(itemId, label, importance, instanceOf, events)`: per-item result. Item-level
+  facts live here once, not on every event; `instanceOf` (P31) feeds the junk report.
+- `Event(kind, when, endDate, where)`.
+- `HistoricDate(year, month, day, precision, calendar)`: `year` is a `long`, negative for BC;
+  never use `java.time` types for historic dates.
+- Place is a sealed type: own coordinates (lat, lon, precision) or a reference to a place QID.
+- Unusable values return null / are dropped, never thrown: one bad value costs one event, not the run.
+- Group small types by nesting (e.g. `HistoricDate.Precision`, `Event.Kind`, `Event.Place`)
+  rather than one file per enum.
+
 ## Tech
 - Java 21, Gradle (Kotlin DSL) multi-project build: extractor, importer, follower, api
-  (add subprojects as they're needed).
+  (add subprojects as they're needed). Base package `io.github.luisr96.whathappenedhere`.
 - Jackson streaming for the dump; Spring Batch for the importer; Postgres + PostGIS;
   Flyway migrations; Testcontainers for DB tests; Docker for deployment.
+
+## Workflow for every feature
+1. **Tests first**: delegate to the `test-writer` agent with the feature description. It writes
+   failing tests from the spec without seeing the implementation. Confirm they fail.
+2. **Implement** until all tests pass. Don't edit the new tests to make them pass; if a test looks
+   wrong, stop and explain why instead.
+3. **Review**: delegate to the `code-reviewer` agent. Fix every "must fix", and "should fix" unless
+   there's a stated reason not to. Re-run tests.
+4. **Commit**: propose a Conventional Commits message (`feat:`, `fix:`, `test:`, `refactor:`,
+   `docs:`, `build:`, `chore:`, with optional scope, e.g. `feat(extractor): parse Wikidata times`),
+   show `git diff --stat` and a short summary, and wait for approval. One logical change per commit.
