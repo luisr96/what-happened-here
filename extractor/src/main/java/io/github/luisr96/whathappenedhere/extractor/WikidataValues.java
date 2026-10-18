@@ -22,9 +22,14 @@ final class WikidataValues {
         JsonNode type = entityIdValue.path("entity-type");
         JsonNode id = entityIdValue.path("id");
         if (!type.isString() || !type.stringValue().equals("item")
-                || !id.isString() || !QID.matcher(id.stringValue()).matches()) {
+                || !id.isString() || !isItemId(id.stringValue())) {
             return null;
         }
         return id.stringValue();
+    }
+
+    /** True for a well-formed item id such as "Q42" (no leading zeros). */
+    static boolean isItemId(String id) {
+        return QID.matcher(id).matches();
     }
 }

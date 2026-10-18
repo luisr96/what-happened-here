@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -41,7 +42,39 @@ public final class Statements {
      * @return the date, or null when the property has no usable non-deprecated value
      */
     public static HistoricDate bestDate(JsonNode claims, String propertyId) {
-        return best(claims, propertyId, HistoricDate::parse, EARLIEST_DATE);
+        return bestDate(claims, propertyId, date -> true);
+    }
+
+    /** As {@link #bestDate(JsonNode, String)}, also treating dates that fail {@code usable} as unusable. */
+    static HistoricDate bestDate(JsonNode claims, String propertyId, Predicate<HistoricDate> usable) {
+        Function<JsonNode, HistoricDate> parser = value -> {
+            HistoricDate date = HistoricDate.parse(value);
+            return date != null && usable.test(date) ? date : null;
+        };
+        return best(claims, propertyId, parser, EARLIEST_DATE);
+    }
+
+    /**
+     * True when the property has non-deprecated values and every one of them is on another
+     * globe (e.g. Q631696, a lunar crater): a null {@link #bestPlace} alone can't tell that apart
+     * from having no coordinates. A malformed value on Earth means the item isn't off Earth.
+     */
+    static boolean onlyOffEarthCoordinates(JsonNode claims, String propertyId) {
+        if (claims == null || !claims.isObject()) {
+            return false;
+        }
+        boolean any = false;
+        for (JsonNode statement : claims.path(propertyId)) {
+            if (!RANKS_IN_ORDER.contains(statement.path("rank").asString(""))
+                    || !"value".equals(statement.path("mainsnak").path("snaktype").asString(""))) {
+                continue;
+            }
+            if (!Event.Coordinates.isOffEarth(statement.path("mainsnak").path("datavalue").path("value"))) {
+                return false;
+            }
+            any = true;
+        }
+        return any;
     }
 
     /**

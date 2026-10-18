@@ -1,5 +1,6 @@
 package io.github.luisr96.whathappenedhere.extractor;
 
+import java.util.Objects;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -11,6 +12,12 @@ import tools.jackson.databind.JsonNode;
  * @param where   own coordinates, or a reference to a place item resolved later
  */
 public record Event(Kind kind, HistoricDate when, HistoricDate endDate, Place where) {
+
+    public Event {
+        Objects.requireNonNull(kind, "kind");
+        Objects.requireNonNull(when, "when");
+        Objects.requireNonNull(where, "where");
+    }
 
     /** The kinds of moment the extractor emits; see the When/Where table in CLAUDE.md. */
     public enum Kind { HAPPENED, BORN, DIED, FOUNDED, ENDED, OPENED }
@@ -60,6 +67,12 @@ public record Event(Kind kind, HistoricDate when, HistoricDate endDate, Place wh
                     ? precision.doubleValue()
                     : null;
             return new Coordinates(latitude, longitude, precisionDegrees);
+        }
+
+        /** True when a globecoordinate value names a globe, and it isn't Earth (e.g. Q631696). */
+        static boolean isOffEarth(JsonNode globeCoordinateValue) {
+            JsonNode globe = globeCoordinateValue.path("globe");
+            return globe.isString() && !globe.stringValue().equals(EARTH);
         }
 
         /** True when precision is unknown or at least {@link #APPROXIMATE_DEGREES} (e.g. Lisbon 1755 at 1°). */

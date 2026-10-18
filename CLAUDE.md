@@ -27,14 +27,16 @@ An event is **(item, kind of moment, when, where)**. One item can produce severa
 
 | Kind | When | Where (try in order) |
 |---|---|---|
-| Happened | P585 point in time, else P580 start (P582 end if present) | P625 own coords -> P276 location -> P131 admin area |
+| Happened | P580 start + P582 end when both exist, else P585 point in time, else P580 alone | P625 own coords -> P276 location -> P131 admin area |
 | Born | P569 | P19 place of birth |
 | Died | P570 | P20 place of death |
 | Founded | P571 inception | P625 -> P159 headquarters -> P131 |
 | Ended | P576 dissolved/abolished/demolished | same as Founded |
 | Opened | P1619 date of official opening | P625 -> P131 |
 
-Later candidate: P575 time of discovery (with P189 location of discovery).
+Later candidates, measured by the head-of-dump report (how many items have them but produce no
+event, e.g. Apollo 11 and Tutankhamun's tomb today): P575 time of discovery (with P189 location
+of discovery); P619/P620 launch/landing dates (with P448 launch site).
 Not used on purpose: P577 publication date (would flood the data with scholarly articles).
 
 ### Rules for every kind
@@ -57,7 +59,8 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
 - Place given as another item (P276, P19, P20, P159, P131): store the place QID; coordinates are
   resolved later from a separate places table (never copied into the event).
 - Coordinates keep their stated precision (degrees); a 1-degree point (Lisbon 1755, at sea) must
-  be distinguishable from an exact one so the UI can show it as approximate.
+  be distinguishable from an exact one so the UI can show it as approximate. Approximate =
+  precision unknown or >= 0.1 degrees (~11 km, coarser than a town).
 - Dates: a value claiming more precision than it carries (e.g. `+1887-00-00` at day precision) is
   broken and dropped; fields below the stated precision are cleared to 0.
 - Exclusions: fictional items (detected via P31 types, e.g. Q15632617 fictional human; there is
