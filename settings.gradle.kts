@@ -1,2 +1,2 @@
 rootProject.name = "what-happened-here"
-include("extractor", "sampler")
+include("extractor", "sampler", "api")

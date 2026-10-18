@@ -56,8 +56,11 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
 - Statements with snaktype `somevalue` or `novalue` carry no value; skip them.
 - Dates: keep precision (day/month/year/decade/century/millennium), support BC years,
   record calendar (Julian vs Gregorian). UI shows e.g. "c. 1200s", never a fake exact date.
-- Place given as another item (P276, P19, P20, P159, P131): store the place QID; coordinates are
-  resolved later from a separate places table (never copied into the event).
+- Place given as another item (P276, P19, P20, P159, P131): the extractor stores the place QID;
+  coordinates are resolved later from a separate places table. In the database, events carry a
+  copy of their place's coordinates (`events.geom`) for fast map queries, so whenever a place's
+  coordinates change, the importer and follower must update `events.geom` for every event with
+  that `place_qid`.
 - Coordinates keep their stated precision (degrees); a 1-degree point (Lisbon 1755, at sea) must
   be distinguishable from an exact one so the UI can show it as approximate. Approximate =
   precision unknown or >= 0.1 degrees (~11 km, coarser than a town).
@@ -89,13 +92,15 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
 1. Stream the dump; extractor emits candidate events (with place QIDs) and the importer also
    records every item that has coordinates (potential places).
 2. Write to a LOCAL Postgres, not the hosted one.
-3. Resolve with SQL joins: attach coordinates, drop unresolved events, keep only used places.
+3. Resolve with SQL joins: copy place coordinates onto events, drop unresolved events, keep only
+   used places.
 4. Inspect, then bulk-load (COPY) into hosted DB. Record dump date as "last processed".
 
 ### Follower flow (each scheduled run)
 Read last-processed timestamp -> fetch changed item IDs since then -> refetch entities in batches ->
-same extractor -> upsert / delete / handle merges and redirects -> update changed places ->
-save new timestamp. A failed run just retries from the same timestamp.
+same extractor -> upsert / delete / handle merges and redirects -> update changed places and
+copy their coordinates onto every event with that place_qid -> save new timestamp. A failed run
+just retries from the same timestamp.
 Caveats: recent-changes history is limited (~a month), so long outages need a re-import;
 periodic full re-import from a fresh dump is the safety net.
 
