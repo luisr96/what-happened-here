@@ -211,6 +211,16 @@ class WikidataExtractorTest {
     }
 
     @Nested
+    class Season {
+
+        // Q144644 is typed only as a United Rugby Championship season; the type alone excludes it.
+        @Test
+        void pro12SeasonNothing() {
+            assertNothing(entity("Q144644"));
+        }
+    }
+
+    @Nested
     class Happened {
 
         @Test
@@ -286,6 +296,18 @@ class WikidataExtractorTest {
             assertKinds(item, Kind.HAPPENED);
             assertDay(event(item, Kind.HAPPENED).when(), 2004, 12, 26);
             assertOwnCoords(event(item, Kind.HAPPENED));
+        }
+
+        // Q284163 is a tournament also typed as the generic sports season, which is not excluded.
+        @Test
+        void worldCup2022IsKept() {
+            var item = extracted("Q284163");
+            assertKinds(item, Kind.HAPPENED);
+            assertEquals(1, item.events().size());
+            Event e = event(item, Kind.HAPPENED);
+            assertDay(e.when(), 2022, 11, 20);
+            assertDay(e.endDate(), 2022, 12, 18);
+            assertAt(e, "Q1186333");
         }
 
         @Test

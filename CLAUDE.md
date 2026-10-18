@@ -70,8 +70,10 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
   re-run it when a class is added. An item also typed as human (Q5), human whose existence is
   disputed or human biblical figure is kept (King Arthur, Hagar), even if also typed fictional
   human. Also excluded: geologic time intervals (subclasses of geochronological/chronostratigraphic
-  unit, e.g. Zanclean), coordinates not on Earth (globe must be Q2), future dates, broken dates.
-  Further exclusions are decided from looking at sample output, not guessed upfront.
+  unit, e.g. Zanclean), sports seasons of a club, league or player (not the generic sports season
+  that tournament editions like the 2022 FIFA World Cup use), coordinates not on Earth (globe must
+  be Q2), future dates, broken dates. Further exclusions are decided from looking at sample output,
+  not guessed upfront.
 
 ## Architecture
 | Piece | Job | Tech | Runs where |

@@ -29,6 +29,10 @@ public final class ItemFacts {
     // Eons to stages: dated in millions of years with type-site coordinates (Zanclean, Q146094).
     private static final Set<String> GEOLOGIC_TYPES = excludedTypes("geologic");
 
+    // A club's, league's or player's season (2011-12 Pro12, Q144644). The generic sports season
+    // stays, since tournament editions use it (2022 FIFA World Cup, Q284163).
+    private static final Set<String> SEASON_TYPES = excludedTypes("season");
+
     // Real or possibly real people keep their events despite a fictional type: King Arthur
     // (Q45792) is also a disputed human, Hagar (Q214617) also a biblical figure.
     private static final Set<String> HUMAN_TYPES = Set.of(
@@ -124,6 +128,14 @@ public final class ItemFacts {
     /** True when the item is a geologic time interval; unlike fiction, no type overrides it. */
     public static boolean isGeologic(List<String> instanceOf) {
         return instanceOf.stream().anyMatch(GEOLOGIC_TYPES::contains);
+    }
+
+    /**
+     * True when the item is one club's, league's or player's season; unlike fiction, no type
+     * overrides it. The generic sports season (Q27020041) alone does not count.
+     */
+    public static boolean isSeason(List<String> instanceOf) {
+        return instanceOf.stream().anyMatch(SEASON_TYPES::contains);
     }
 
     /**

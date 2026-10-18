@@ -47,7 +47,7 @@ public final class WikidataExtractor {
         int importance = ItemFacts.importance(entity.path("sitelinks"));
         List<String> instanceOf = ItemFacts.instanceOf(claims);
         if (importance == 0 || ItemFacts.isFictional(instanceOf)
-                || ItemFacts.isGeologic(instanceOf)
+                || ItemFacts.isGeologic(instanceOf) || ItemFacts.isSeason(instanceOf)
                 || Statements.onlyOffEarthCoordinates(claims, "P625")) {
             return Optional.empty();
         }

@@ -354,4 +354,50 @@ class ItemFactsTest {
     void fictionalTypeIsNotGeologic() {
         assertFalse(ItemFacts.isGeologic(List.of("Q178885")));
     }
+
+    // Q144644 (2011-12 Pro12) is typed only as a United Rugby Championship season.
+    @Test
+    void pro12SeasonIsSeason() {
+        assertTrue(ItemFacts.isSeason(ItemFacts.instanceOf(entity("Q144644").path("claims"))));
+    }
+
+    // Q284163 (2022 FIFA World Cup) is a tournament also typed as the generic sports season.
+    @Test
+    void worldCupIsNotSeason() {
+        assertFalse(ItemFacts.isSeason(ItemFacts.instanceOf(entity("Q284163").path("claims"))));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Q1539532", "Q131459694", "Q26897352", "Q5290181", "Q47465437",
+            "Q137387240", "Q76941636", "Q106562461", "Q116621413", "Q26887310", "Q26894053"})
+    void eachSeasonTypeAloneIsSeason(String qid) {
+        assertTrue(ItemFacts.isSeason(List.of(qid)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Q27020041", "Q500834", "Q1478437", "Q5", "Q515"})
+    void genericSeasonTournamentsAndOtherTypesAreNotSeason(String qid) {
+        assertFalse(ItemFacts.isSeason(List.of(qid)));
+    }
+
+    @Test
+    void emptyTypesAreNotSeason() {
+        assertFalse(ItemFacts.isSeason(List.of()));
+    }
+
+    @Test
+    void humanTypeDoesNotOverrideSeason() {
+        assertTrue(ItemFacts.isSeason(List.of("Q5", "Q116621413")));
+    }
+
+    @Test
+    void seasonTypeIsNotFictionalOrGeologic() {
+        assertFalse(ItemFacts.isFictional(List.of("Q116621413")));
+        assertFalse(ItemFacts.isGeologic(List.of("Q116621413")));
+    }
+
+    @Test
+    void geologicTypeIsNotSeason() {
+        assertFalse(ItemFacts.isSeason(List.of("Q1123245")));
+    }
 }

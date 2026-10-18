@@ -83,6 +83,8 @@ unknown).
 | Mozart typed as fictional human Q15632617 (synthetic) | synthetic-fictional | Nothing | Fictional exclusion with otherwise valid events |
 | Mozart typed only as mythical character Q4271324 (synthetic) | synthetic-mythical | Nothing | Denylisted type with no human type excludes |
 | Mozart typed as human Q5 and film character Q15773347 (synthetic) | synthetic-human-film-character | Born and Died as Mozart | A human type keeps an item despite a denylisted type |
+| 2011–12 Pro12 (rugby union league season) | Q144644 | Nothing | Typed only as a season subtype (season of the United Rugby Championship); would otherwise give Happened 2011-09-02 to 2012-05-27 at Q25 |
+| 2022 FIFA World Cup | Q284163 | Happened 2022-11-20 to 2022-12-18 at Q1186333 | Tournament edition typed with the generic sports season Q27020041, which is kept |
 | Zanclean (geologic stage, -5,333,000 to -3,600,000) | Q146094 | Nothing | Geologic time interval (stage/age); its GSSP coordinates would otherwise give Happened |
 | Mozart with sitelinks removed (synthetic) | synthetic-no-sitelinks | Nothing | Sitelink gate |
 | Mozart with every P569 deprecated (synthetic) | synthetic-deprecated-only | Died only, no Born | Rank rules |

@@ -31,6 +31,19 @@ ROOTS = {
         "Q4005761",   # geochronological unit
         "Q4005689",   # chronostratigraphic unit
     ],
+    # A club's, league's or player's season (2011-12 Pro12, Q144644). The generic sports season
+    # Q27020041 is kept: tournament editions use it (2022 FIFA World Cup, Q284163).
+    "season": [
+        "Q1539532",   # sports season of a sports club
+        "Q131459694", # association football season
+        "Q26897352",  # football league season
+        "Q5290181",   # domestic association football season
+        "Q47465437",  # player season
+        "Q137387240", # volleyball season
+        "Q76941636",  # college football season
+        "Q106562461", # Top 14 season
+        "Q116621413", # season of the United Rugby Championship
+    ],
 }
 
 # Branches the P279* tree pulls in by mistake, removed with all their subclasses.
