@@ -36,11 +36,16 @@ public final class ItemFacts {
         }
         int count = 0;
         for (String site : sitelinks.propertyNames()) {
-            if (site.endsWith("wiki") && !PROJECT_WIKIS.contains(site)) {
+            if (isWikipediaSitelink(site)) {
                 count++;
             }
         }
         return count;
+    }
+
+    /** True when a sitelink key counts towards {@link #importance}, e.g. "enwiki" or "zh_yuewiki". */
+    public static boolean isWikipediaSitelink(String site) {
+        return site.endsWith("wiki") && !PROJECT_WIKIS.contains(site);
     }
 
     /**
