@@ -14,6 +14,9 @@ from pathlib import Path
 
 DIR = Path(__file__).resolve().parent.parent / "extractor/src/test/resources/entities"
 FICTIONAL_HUMAN = "Q15632617"
+HUMAN = "Q5"
+MYTHICAL_CHARACTER = "Q4271324"
+FILM_CHARACTER = "Q15773347"
 MOON = "http://www.wikidata.org/entity/Q405"
 
 
@@ -60,11 +63,31 @@ def no_sitelinks(e):
     e["sitelinks"] = {}
 
 
+def set_types(e, *qids):
+    """Replaces the item's P31 statements with one normal-rank statement per type."""
+    template = e["claims"]["P31"][0]
+    e["claims"]["P31"] = []
+    for i, qid in enumerate(qids):
+        s = copy.deepcopy(template)
+        s["id"] = f"Q254$synthetic-type-{i}"
+        s["rank"] = "normal"
+        s["mainsnak"]["datavalue"]["value"].update({"id": qid, "numeric-id": int(qid[1:])})
+        e["claims"]["P31"].append(s)
+
+
 def fictional(e):
     """Mozart typed as a fictional human: valid Born/Died data, excluded only for being fictional."""
-    for s in e["claims"]["P31"]:
-        s["mainsnak"]["datavalue"]["value"].update(
-            {"id": FICTIONAL_HUMAN, "numeric-id": int(FICTIONAL_HUMAN[1:])})
+    set_types(e, FICTIONAL_HUMAN)
+
+
+def mythical(e):
+    """Mozart typed only as a mythical character: excluded, as no human type keeps it."""
+    set_types(e, MYTHICAL_CHARACTER)
+
+
+def human_film_character(e):
+    """Mozart typed as human and film character: kept, because a human type wins."""
+    set_types(e, HUMAN, FILM_CHARACTER)
 
 
 def off_earth(e):
@@ -79,6 +102,8 @@ VARIANTS = {
     "synthetic-two-birth-ranks": ("Q254", two_birth_ranks),
     "synthetic-no-sitelinks": ("Q254", no_sitelinks),
     "synthetic-fictional": ("Q254", fictional),
+    "synthetic-mythical": ("Q254", mythical),
+    "synthetic-human-film-character": ("Q254", human_film_character),
     "synthetic-off-earth": ("Q191055", off_earth),
 }
 

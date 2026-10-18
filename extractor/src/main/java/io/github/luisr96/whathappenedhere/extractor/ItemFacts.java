@@ -20,7 +20,18 @@ public final class ItemFacts {
             "Q15632617", // fictional human
             "Q95074",    // fictional character
             "Q15707521", // fictional battle
-            "Q3658341"); // literary character
+            "Q3658341",  // literary character
+            "Q4271324",  // mythical character
+            "Q13002315", // legendary figure
+            "Q178885",   // deity
+            "Q15773347"); // film character
+
+    // Real or possibly real people keep their events despite a fictional type: King Arthur
+    // (Q45792) is also a disputed human, Hagar (Q214617) also a biblical figure.
+    private static final Set<String> HUMAN_TYPES = Set.of(
+            "Q5",        // human
+            "Q21070568", // human whose existence is disputed
+            "Q20643955"); // human biblical figure
 
     private ItemFacts() {}
 
@@ -98,9 +109,13 @@ public final class ItemFacts {
         return List.copyOf(types);
     }
 
-    /** True when any of the item's types marks it as fiction, which excludes all its events. */
+    /**
+     * True when the item's types mark it as fiction, which excludes all its events: any
+     * fictional type, unless the item is also typed as a (possibly) real human.
+     */
     public static boolean isFictional(List<String> instanceOf) {
-        return instanceOf.stream().anyMatch(FICTIONAL_TYPES::contains);
+        return instanceOf.stream().noneMatch(HUMAN_TYPES::contains)
+                && instanceOf.stream().anyMatch(FICTIONAL_TYPES::contains);
     }
 
     private static String labelIn(JsonNode labels, String language) {

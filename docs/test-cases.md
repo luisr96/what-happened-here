@@ -33,6 +33,9 @@ unknown).
 | Emmanuel Macron (living head of state) | Q3052772 | Born 1977-12-21 at Q41604; no Died | Missing death is normal; no `en` label, only `mul` |
 | Balbinus (Roman emperor, no P19) | Q1805 | Died 0238-07-29 J at Q220 only | Missing place of birth |
 | Sherlock Holmes | Q4653 | Nothing | Fictional person (has dates but no places, so the fictional rule itself is tested by `synthetic-fictional`) |
+| King Arthur | Q45792 | Died 0600 J (century) at Q1028477; no Born (no P19) | Mythical character but also typed "human whose existence is disputed", so kept |
+| Hagar | Q214617 | Born -1930 J (year) at Q11768; no Died (no P20) | Film character but also typed "human biblical figure", so kept |
+| Zeus | Q34201 | Nothing | Deity with no dates or places; the type rule itself is tested by `synthetic-mythical` |
 
 ## Happened (point in time / start-end)
 | Item | QID | Expected | Why |
@@ -78,6 +81,8 @@ unknown).
 | Tycho (lunar crater) | Q631696 | Nothing | Coordinates on the Moon's globe (also no date) |
 | Lisbon earthquake with coords on the Moon (synthetic) | synthetic-off-earth | Nothing (no fallback to its P276) | Off-Earth-only P625 excludes the item |
 | Mozart typed as fictional human Q15632617 (synthetic) | synthetic-fictional | Nothing | Fictional exclusion with otherwise valid events |
+| Mozart typed only as mythical character Q4271324 (synthetic) | synthetic-mythical | Nothing | Denylisted type with no human type excludes |
+| Mozart typed as human Q5 and film character Q15773347 (synthetic) | synthetic-human-film-character | Born and Died as Mozart | A human type keeps an item despite a denylisted type |
 | Mozart with sitelinks removed (synthetic) | synthetic-no-sitelinks | Nothing | Sitelink gate |
 | Mozart with every P569 deprecated (synthetic) | synthetic-deprecated-only | Died only, no Born | Rank rules |
 | Mozart plus an earlier deprecated P569 (synthetic) | synthetic-deprecated-earlier | Born 1756-01-27 | Deprecated dropped before the earliest-date tie-break |

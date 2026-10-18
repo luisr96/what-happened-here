@@ -214,9 +214,71 @@ class ItemFactsTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"Q15632617", "Q95074", "Q15707521", "Q3658341"})
-    void eachDenylistedTypeIsFictional(String qid) {
-        assertTrue(ItemFacts.isFictional(List.of("Q5", qid)));
+    @ValueSource(strings = {"Q15632617", "Q95074", "Q15707521", "Q3658341",
+            "Q4271324", "Q13002315", "Q178885", "Q15773347"})
+    void eachDenylistedTypeAloneIsFictional(String qid) {
+        assertTrue(ItemFacts.isFictional(List.of(qid)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Q4271324", "Q13002315", "Q178885", "Q15773347"})
+    void newDenylistedTypesAmongOtherTypesAreFictional(String qid) {
+        assertTrue(ItemFacts.isFictional(List.of("Q515", qid)));
+    }
+
+    @Test
+    void humanTypeOverridesFilmCharacter() {
+        assertFalse(ItemFacts.isFictional(List.of("Q5", "Q15773347")));
+    }
+
+    @Test
+    void disputedHumanOverridesMythicalCharacter() {
+        assertFalse(ItemFacts.isFictional(List.of("Q4271324", "Q21070568")));
+    }
+
+    @Test
+    void biblicalHumanOverridesFilmCharacter() {
+        assertFalse(ItemFacts.isFictional(List.of("Q20643955", "Q15773347")));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Q5", "Q21070568", "Q20643955"})
+    void humanTypeOverridesEveryDenylistedType(String human) {
+        assertFalse(ItemFacts.isFictional(List.of("Q15632617", "Q95074", "Q15707521", "Q3658341",
+                "Q4271324", "Q13002315", "Q178885", "Q15773347", human)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Q21070568", "Q20643955"})
+    void humanTypesAloneAreNotFictional(String human) {
+        assertFalse(ItemFacts.isFictional(List.of(human)));
+    }
+
+    @Test
+    void fictionalHumanAloneIsFictional() {
+        assertTrue(ItemFacts.isFictional(List.of("Q15632617")));
+    }
+
+    @Test
+    void kingArthurIsNotFictional() {
+        assertFalse(ItemFacts.isFictional(ItemFacts.instanceOf(entity("Q45792").path("claims"))));
+    }
+
+    @Test
+    void hagarIsNotFictional() {
+        assertFalse(ItemFacts.isFictional(ItemFacts.instanceOf(entity("Q214617").path("claims"))));
+    }
+
+    @Test
+    void syntheticMythicalIsFictional() {
+        assertTrue(ItemFacts.isFictional(
+                ItemFacts.instanceOf(entity("synthetic-mythical").path("claims"))));
+    }
+
+    @Test
+    void syntheticHumanFilmCharacterIsNotFictional() {
+        assertFalse(ItemFacts.isFictional(
+                ItemFacts.instanceOf(entity("synthetic-human-film-character").path("claims"))));
     }
 
     @Test

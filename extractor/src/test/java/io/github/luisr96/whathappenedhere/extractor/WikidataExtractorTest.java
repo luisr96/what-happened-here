@@ -177,6 +177,27 @@ class WikidataExtractorTest {
         void sherlockHolmesNothing() {
             assertNothing(entity("Q4653"));
         }
+
+        @Test
+        void kingArthurDisputedHumanKeptWithOnlyDied() {
+            var item = extracted("Q45792");
+            assertKinds(item, Kind.DIED);
+            assertDate(event(item, Kind.DIED).when(), 600, 0, 0, Precision.CENTURY, Calendar.JULIAN);
+            assertAt(event(item, Kind.DIED), "Q1028477");
+        }
+
+        @Test
+        void hagarBiblicalHumanKeptWithOnlyBorn() {
+            var item = extracted("Q214617");
+            assertKinds(item, Kind.BORN);
+            assertDate(event(item, Kind.BORN).when(), -1930, 0, 0, Precision.YEAR, Calendar.JULIAN);
+            assertAt(event(item, Kind.BORN), "Q11768");
+        }
+
+        @Test
+        void zeusNothing() {
+            assertNothing(entity("Q34201"));
+        }
     }
 
     @Nested
@@ -437,9 +458,19 @@ class WikidataExtractorTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"Q1895685", "Q16711", "Q631696", "synthetic-off-earth", "synthetic-fictional",
-            "synthetic-no-sitelinks"})
+            "synthetic-mythical", "synthetic-no-sitelinks"})
         void nothing(String id) {
             assertNothing(entity(id));
+        }
+
+        @Test
+        void humanFilmCharacterKeptLikeMozart() {
+            var item = extracted("synthetic-human-film-character");
+            assertKinds(item, Kind.BORN, Kind.DIED);
+            assertDay(event(item, Kind.BORN).when(), 1756, 1, 27);
+            assertAt(event(item, Kind.BORN), "Q34713");
+            assertDay(event(item, Kind.DIED).when(), 1791, 12, 5);
+            assertAt(event(item, Kind.DIED), "Q1741");
         }
 
         @Test
