@@ -1,0 +1,1 @@
+{"itemId":"Q5","label":"Second Load","importance":7,"instanceOf":["Q1656682"],"events":[{"kind":"HAPPENED","when":{"year":2000,"month":1,"day":1,"precision":"DAY","calendar":"GREGORIAN"},"endDate":null,"where":{"latitude":1.5,"longitude":3.5,"precision":1.0}}]}

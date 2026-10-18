@@ -1,0 +1,2 @@
+{"itemId":"Q6","label":"Valid Before Bad","importance":9,"instanceOf":[],"events":[{"kind":"HAPPENED","when":{"year":1990,"month":0,"day":0,"precision":"YEAR","calendar":"GREGORIAN"},"endDate":null,"where":{"latitude":0.5,"longitude":0.5,"precision":0.0001}}]}
+{"itemId":"Q7","label":"Broken
