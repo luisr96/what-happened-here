@@ -15,8 +15,11 @@ Wikidata.
 - Keeping current: poll Wikidata's recent-changes API for items edited since the last run,
   refetch those entities, run them through the same extractor, upsert/delete.
 - Importance = number of Wikipedia sitelinks: keys ending in `wiki`, excluding non-Wikipedia
-  projects such as `commonswiki`, `specieswiki`, `wikidatawiki`, `metawiki`, `mediawikiwiki`.
-  Wikivoyage/Wikiquote/Wikisource etc. don't count (Rome: 344 sitelinks, 274 Wikipedias).
+  project wikis: `commonswiki`, `specieswiki`, `wikidatawiki`, `metawiki`, `mediawikiwiki`,
+  `sourceswiki`, `outreachwiki`, `incubatorwiki`, `wikimaniawiki`, `foundationwiki`,
+  `wikifunctionswiki`, `abstractwiki`. Wikivoyage/Wikiquote/Wikisource etc. don't count
+  (Rome: 344 sitelinks, 273 Wikipedias). The head-of-dump report lists any `*wiki` key that is
+  neither excluded nor a language-code pattern, so new Wikimedia projects get noticed.
 
 ## What counts as an event
 An event is **(item, kind of moment, when, where)**. One item can produce several events

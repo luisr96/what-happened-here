@@ -1,6 +1,5 @@
 package io.github.luisr96.whathappenedhere.extractor;
 
-import java.util.regex.Pattern;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -77,24 +76,14 @@ public record Event(Kind kind, HistoricDate when, HistoricDate endDate, Place wh
      */
     public record PlaceRef(String qid) implements Place {
 
-        private static final Pattern QID = Pattern.compile("Q[1-9]\\d*");
-
         /**
          * Parses the {@code value} object of a wikibase-entityid datavalue.
          *
          * @return the reference, or null unless it names an item with a well-formed {@code id}
          */
         public static PlaceRef parse(JsonNode entityIdValue) {
-            if (entityIdValue == null || !entityIdValue.isObject()) {
-                return null;
-            }
-            JsonNode type = entityIdValue.path("entity-type");
-            JsonNode id = entityIdValue.path("id");
-            if (!type.isString() || !type.stringValue().equals("item")
-                    || !id.isString() || !QID.matcher(id.stringValue()).matches()) {
-                return null;
-            }
-            return new PlaceRef(id.stringValue());
+            String qid = WikidataValues.itemId(entityIdValue);
+            return qid == null ? null : new PlaceRef(qid);
         }
     }
 }
