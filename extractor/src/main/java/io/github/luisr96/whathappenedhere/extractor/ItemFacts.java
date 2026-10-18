@@ -26,6 +26,9 @@ public final class ItemFacts {
     // items carry specific types (Zeus is a "Greek deity", Q22989102), not the root classes.
     private static final Set<String> FICTIONAL_TYPES = excludedTypes("fictional");
 
+    // Eons to stages: dated in millions of years with type-site coordinates (Zanclean, Q146094).
+    private static final Set<String> GEOLOGIC_TYPES = excludedTypes("geologic");
+
     // Real or possibly real people keep their events despite a fictional type: King Arthur
     // (Q45792) is also a disputed human, Hagar (Q214617) also a biblical figure.
     private static final Set<String> HUMAN_TYPES = Set.of(
@@ -116,6 +119,11 @@ public final class ItemFacts {
     public static boolean isFictional(List<String> instanceOf) {
         return instanceOf.stream().noneMatch(HUMAN_TYPES::contains)
                 && instanceOf.stream().anyMatch(FICTIONAL_TYPES::contains);
+    }
+
+    /** True when the item is a geologic time interval; unlike fiction, no type overrides it. */
+    public static boolean isGeologic(List<String> instanceOf) {
+        return instanceOf.stream().anyMatch(GEOLOGIC_TYPES::contains);
     }
 
     /**

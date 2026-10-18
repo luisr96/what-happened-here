@@ -26,6 +26,21 @@ ROOTS = {
         "Q178885",    # deity
         "Q15773347",  # film character
     ],
+    # Eons to stages (Zanclean, Q146094): dated in millions of years, not history.
+    "geologic": [
+        "Q4005761",   # geochronological unit
+        "Q4005689",   # chronostratigraphic unit
+    ],
+}
+
+# Branches the P279* tree pulls in by mistake, removed with all their subclasses.
+NOT_EXCLUDED = {
+    "geologic": [
+        "Q6299544",   # Juan Crow era
+        "Q16719003",  # thalassocratic period (history of Majapahit, Q1340213)
+        "Q1896735",   # Marian year
+        "Q2735933",   # anomalistic year
+    ],
 }
 
 OUT = (pathlib.Path(__file__).resolve().parent.parent
@@ -61,6 +76,9 @@ def main():
     ]
     for category, roots in ROOTS.items():
         found = subclasses(roots)
+        kept_out = NOT_EXCLUDED.get(category, [])
+        if kept_out:
+            found -= subclasses(kept_out)
         missing = set(roots) - found
         if missing:
             raise SystemExit(f"{category}: roots not returned: {sorted(missing)}")

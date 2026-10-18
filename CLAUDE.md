@@ -69,7 +69,8 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
   deity"): `scripts/fetch_excluded_types.py` writes them to the extractor's `excluded-types.tsv`;
   re-run it when a class is added. An item also typed as human (Q5), human whose existence is
   disputed or human biblical figure is kept (King Arthur, Hagar), even if also typed fictional
-  human. Also excluded: coordinates not on Earth (globe must be Q2), future dates, broken dates.
+  human. Also excluded: geologic time intervals (subclasses of geochronological/chronostratigraphic
+  unit, e.g. Zanclean), coordinates not on Earth (globe must be Q2), future dates, broken dates.
   Further exclusions are decided from looking at sample output, not guessed upfront.
 
 ## Architecture

@@ -201,6 +201,16 @@ class WikidataExtractorTest {
     }
 
     @Nested
+    class Geologic {
+
+        // Q146094 has P580/P582 and Earth P625 (its GSSP), so only the type exclusion stops a Happened.
+        @Test
+        void zancleanNothing() {
+            assertNothing(entity("Q146094"));
+        }
+    }
+
+    @Nested
     class Happened {
 
         @Test

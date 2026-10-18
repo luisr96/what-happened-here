@@ -315,4 +315,43 @@ class ItemFactsTest {
         assertFalse(ItemFacts.isFictional(List.of()));
         assertFalse(ItemFacts.isFictional(List.of("Q5", "Q515")));
     }
+
+    @Test
+    void zancleanIsGeologic() {
+        assertTrue(ItemFacts.isGeologic(ItemFacts.instanceOf(entity("Q146094").path("claims"))));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Q4005761", "Q4005689", "Q108256", "Q630830", "Q392928", "Q754897",
+            "Q568683", "Q2669627", "Q2464485", "Q403523", "Q312468", "Q1123245"})
+    void eachGeologicUnitTypeAloneIsGeologic(String qid) {
+        assertTrue(ItemFacts.isGeologic(List.of(qid)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Q11514315", "Q15401633", "Q15401699", "Q178561", "Q5", "Q515"})
+    void historicalAndRealWorldTypesAreNotGeologic(String qid) {
+        assertFalse(ItemFacts.isGeologic(List.of(qid)));
+    }
+
+    @Test
+    void emptyTypesAreNotGeologic() {
+        assertFalse(ItemFacts.isGeologic(List.of()));
+    }
+
+    // The human keep-list only overrides fictional; a human type must not rescue a geologic one.
+    @Test
+    void humanTypeDoesNotOverrideGeologic() {
+        assertTrue(ItemFacts.isGeologic(List.of("Q5", "Q1123245")));
+    }
+
+    @Test
+    void geologicTypeIsNotFictional() {
+        assertFalse(ItemFacts.isFictional(List.of("Q1123245")));
+    }
+
+    @Test
+    void fictionalTypeIsNotGeologic() {
+        assertFalse(ItemFacts.isGeologic(List.of("Q178885")));
+    }
 }

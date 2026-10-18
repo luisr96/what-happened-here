@@ -83,6 +83,7 @@ unknown).
 | Mozart typed as fictional human Q15632617 (synthetic) | synthetic-fictional | Nothing | Fictional exclusion with otherwise valid events |
 | Mozart typed only as mythical character Q4271324 (synthetic) | synthetic-mythical | Nothing | Denylisted type with no human type excludes |
 | Mozart typed as human Q5 and film character Q15773347 (synthetic) | synthetic-human-film-character | Born and Died as Mozart | A human type keeps an item despite a denylisted type |
+| Zanclean (geologic stage, -5,333,000 to -3,600,000) | Q146094 | Nothing | Geologic time interval (stage/age); its GSSP coordinates would otherwise give Happened |
 | Mozart with sitelinks removed (synthetic) | synthetic-no-sitelinks | Nothing | Sitelink gate |
 | Mozart with every P569 deprecated (synthetic) | synthetic-deprecated-only | Died only, no Born | Rank rules |
 | Mozart plus an earlier deprecated P569 (synthetic) | synthetic-deprecated-earlier | Born 1756-01-27 | Deprecated dropped before the earliest-date tie-break |
