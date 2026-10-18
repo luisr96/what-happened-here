@@ -63,12 +63,14 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
   precision unknown or >= 0.1 degrees (~11 km, coarser than a town).
 - Dates: a value claiming more precision than it carries (e.g. `+1887-00-00` at day precision) is
   broken and dropped; fields below the stated precision are cleared to 0.
-- Exclusions: fictional items (detected via P31 types: fictional human/character, literary,
-  film and mythical character, legendary figure, deity, fictional battle; there is no single
-  "fictional" flag). An item also typed as human (Q5), human whose existence is disputed or
-  human biblical figure is kept (King Arthur, Hagar), even if also typed fictional human. Also
-  excluded: coordinates not on Earth (globe must be Q2), future dates, broken dates. Further
-  exclusions are decided from looking at sample output, not guessed upfront.
+- Exclusions: fictional items (detected via P31 types: fictional human/character, literary, film and
+  mythical character, legendary figure, deity, fictional battle; there is no single "fictional"
+  flag). Type exclusions match every subclass (P279*) of the listed classes (Zeus is a "Greek
+  deity"): `scripts/fetch_excluded_types.py` writes them to the extractor's `excluded-types.tsv`;
+  re-run it when a class is added. An item also typed as human (Q5), human whose existence is
+  disputed or human biblical figure is kept (King Arthur, Hagar), even if also typed fictional
+  human. Also excluded: coordinates not on Earth (globe must be Q2), future dates, broken dates.
+  Further exclusions are decided from looking at sample output, not guessed upfront.
 
 ## Architecture
 | Piece | Job | Tech | Runs where |

@@ -222,8 +222,37 @@ class ItemFactsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"Q4271324", "Q13002315", "Q178885", "Q15773347"})
-    void newDenylistedTypesAmongOtherTypesAreFictional(String qid) {
+    void denylistedTypesAmongOtherTypesAreFictional(String qid) {
         assertTrue(ItemFacts.isFictional(List.of("Q515", qid)));
+    }
+
+    @Test
+    void zeusIsFictionalThroughDeitySubclasses() {
+        assertTrue(ItemFacts.isFictional(ItemFacts.instanceOf(entity("Q34201").path("claims"))));
+    }
+
+    // Zeus's P31 values are all subclasses of deity (Q178885), none is a denylisted root itself.
+    @ParameterizedTest
+    @ValueSource(strings = {"Q842697", "Q22989102", "Q1589492", "Q113103481"})
+    void eachZeusTypeAloneIsFictional(String qid) {
+        assertTrue(ItemFacts.isFictional(List.of(qid)));
+    }
+
+    @Test
+    void humanTypeOverridesDenylistedSubclass() {
+        assertFalse(ItemFacts.isFictional(List.of("Q22989102", "Q5")));
+    }
+
+    // Wikidata classes human biblical figure under a denylisted class; the keep-list must still win.
+    @Test
+    void biblicalHumanAloneIsNotFictionalDespiteSubclassing() {
+        assertFalse(ItemFacts.isFictional(List.of("Q20643955")));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Q515", "Q178561", "Q5", "Q11424", "Q4830453", "Q41176"})
+    void realWorldTypesAreNotFictional(String qid) {
+        assertFalse(ItemFacts.isFictional(List.of(qid)));
     }
 
     @Test
