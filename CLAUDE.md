@@ -36,9 +36,18 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
 
 ### Rules for every kind
 - Gate: item must have at least one Wikipedia sitelink.
-- Ranks: use preferred-rank statements if any, else normal; never deprecated.
+- Ranks: use preferred-rank statements if any, else normal; never deprecated. Statements
+  without a recognised rank are skipped.
 - Multiple values: pick the single best-ranked value; don't emit duplicate events. Tie-break
-  among equal ranks: the earliest date (deterministic; e.g. Eiffel Tower's two P1619 values).
+  among equal ranks: for dates, the earliest date (deterministic; e.g. Eiffel Tower's two P1619
+  values); for places (P625, P276, P19, P20, P159, P131), current values first, then the first
+  in statement order (e.g. a town that moved between provinces). A value is former when it has
+  an end-time qualifier (P582) with a value or `somevalue`; a `novalue` P582 means "no end".
+- Unusable values (broken date, malformed or off-Earth coordinates) are skipped and the next
+  usable value is taken: preferred usable, else normal usable, never deprecated.
+- An item whose P625 values exist but are all off Earth (e.g. Tycho, a lunar crater) produces no
+  events; the place chain does not fall back to P276/P131 for it. (Event assembly must check
+  that P625 statements exist, since a null best value can't tell "none" from "off Earth".)
 - Statements with snaktype `somevalue` or `novalue` carry no value; skip them.
 - Dates: keep precision (day/month/year/decade/century/millennium), support BC years,
   record calendar (Julian vs Gregorian). UI shows e.g. "c. 1200s", never a fake exact date.
