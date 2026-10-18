@@ -41,8 +41,8 @@ class ItemFactsTest {
     }
 
     @Test
-    void villanovaHasTwoWikipedias() {
-        assertEquals(2, ItemFacts.importance(entity("Q4012882").path("sitelinks")));
+    void ivanovkaHasThreeWikipedias() {
+        assertEquals(3, ItemFacts.importance(entity("Q50829").path("sitelinks")));
     }
 
     @Test

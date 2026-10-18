@@ -62,7 +62,7 @@ check the item before changing the rule.
 | Apple Inc. | Q312 | Founded, place via headquarters | Company |
 | Library of Alexandria | Q435 | Founded (BC, imprecise), maybe Ended | Ancient, uncertain dates |
 | Hagia Sophia | Q12506 | Founded/Opened | Ancient building, Julian dates |
-| Villanova (Italian village, 2 sitelinks) | Q4012882 | Founded | Low-importance but valid |
+| Ivanovka (Russian village, 3 Wikipedias) | Q50829 | Founded | Low-importance but valid |
 
 ## Edge cases that should produce nothing (or be filtered)
 | Item | QID | Expected | Why |
