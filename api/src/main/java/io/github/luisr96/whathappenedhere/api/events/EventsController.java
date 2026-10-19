@@ -50,8 +50,7 @@ public class EventsController {
     public TimelineResponse timeline(@RequestParam String bbox,
             @RequestParam(required = false) String kinds,
             @RequestParam(defaultValue = "0") int minImportance) {
-        return events.timeline(new EventFilter(Box.parse(bbox), null, null,
-                EventFilter.parseKinds(kinds), minImportance));
+        return events.timeline(Box.parse(bbox), EventFilter.parseKinds(kinds), minImportance);
     }
 
     /** Same RFC 7807 shape as Spring's own 400s (spring.mvc.problemdetails.enabled). */

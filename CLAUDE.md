@@ -94,13 +94,17 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
 2. Write to a LOCAL Postgres, not the hosted one.
 3. Resolve with SQL joins: copy place coordinates onto events, drop unresolved events, keep only
    used places.
+   Then rebuild `timeline_cells` (per-cell decade counts behind /stats/timeline) in the same
+   transaction.
 4. Inspect, then bulk-load (COPY) into hosted DB. Record dump date as "last processed".
 
 ### Follower flow (each scheduled run)
 Read last-processed timestamp -> fetch changed item IDs since then -> refetch entities in batches ->
 same extractor -> upsert / delete / handle merges and redirects -> update changed places and
-copy their coordinates onto every event with that place_qid -> save new timestamp. A failed run
-just retries from the same timestamp.
+copy their coordinates onto every event with that place_qid -> keep `timeline_cells` in sync in
+the same transaction (a full rebuild recounts every event, so adjust the cells of each changed
+event instead; decide in step 7) -> save new timestamp. A failed run just retries from the same
+timestamp.
 Caveats: recent-changes history is limited (~a month), so long outages need a re-import;
 periodic full re-import from a fresh dump is the safety net.
 

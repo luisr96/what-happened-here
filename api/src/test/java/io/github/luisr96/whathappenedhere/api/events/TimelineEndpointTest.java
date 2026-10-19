@@ -23,7 +23,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-/** GET /stats/timeline against rows inserted directly. */
+/**
+ * GET /stats/timeline against rows inserted directly, with {@link TimelineCells} rebuilt before
+ * each request. Boxes at least 1 degree in both directions read the pre-aggregated cells; smaller
+ * boxes count events exactly.
+ */
 @AutoConfigureMockMvc
 class TimelineEndpointTest extends PostgisIntegrationTest {
 
@@ -34,6 +38,9 @@ class TimelineEndpointTest extends PostgisIntegrationTest {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    TimelineCells cells;
 
     @BeforeEach
     void clean() {
@@ -54,6 +61,7 @@ class TimelineEndpointTest extends PostgisIntegrationTest {
     }
 
     private ResultActions timeline(String query) throws Exception {
+        cells.rebuild();
         return mvc.perform(get("/stats/timeline?" + query));
     }
 
@@ -91,15 +99,48 @@ class TimelineEndpointTest extends PostgisIntegrationTest {
                 .andExpect(jsonPath("$.decades", empty()));
     }
 
+    /** Under 1 degree wide: no cell size gives 10 cells across, so events are counted exactly. */
     @Test
-    void bboxFilterIsExactAndInclusive() throws Exception {
-        insert("Q1", "HAPPENED", 1, 1900, 1900, 5, 5);
-        insert("Q2", "HAPPENED", 1, 1900, 1900, 10, 10);
-        insert("Q3", "HAPPENED", 1, 1900, 1900, 10.0000001, 5);
-        insert("Q4", "HAPPENED", 1, 1700, 1700, 20, 20);
-        timeline("bbox=0,0,10,10").andExpect(status().isOk())
+    void smallBboxFilterIsExactAndInclusive() throws Exception {
+        insert("Q1", "HAPPENED", 1, 1900, 1900, 0.25, 0.25);
+        insert("Q2", "HAPPENED", 1, 1900, 1900, 0.5, 0.5);
+        insert("Q3", "HAPPENED", 1, 1900, 1900, 0.5000001, 0.25);
+        insert("Q4", "HAPPENED", 1, 1700, 1700, 0.55, 0.55);
+        timeline("bbox=0,0,0.5,0.5").andExpect(status().isOk())
                 .andExpect(jsonPath("$.decades[*].decade", contains(1900)))
                 .andExpect(jsonPath("$.decades[*].count", contains(2)));
+    }
+
+    /** Wide but under 1 degree high still takes the exact path. */
+    @Test
+    void wideButShortBboxIsExact() throws Exception {
+        insert("Q1", "HAPPENED", 1, 1900, 1900, 50, 0.5);
+        insert("Q2", "HAPPENED", 1, 1900, 1900, 50, 0.95);
+        timeline("bbox=0,0,100,0.9").andExpect(status().isOk())
+                .andExpect(jsonPath("$.decades[*].count", contains(1)));
+    }
+
+    /** 10 x 10 degrees uses 1-degree cells, so a point in a cell touching the edge counts. */
+    @Test
+    void largeBboxCountsWholeTouchingCells() throws Exception {
+        insert("Q1", "HAPPENED", 1, 1900, 1900, 5, 5);
+        insert("Q2", "HAPPENED", 1, 1900, 1900, 10.5, 10.5);
+        insert("Q3", "HAPPENED", 1, 1900, 1900, 11, 5);
+        insert("Q4", "HAPPENED", 1, 1900, 1900, -0.5, 5);
+        timeline("bbox=0,0,10,10").andExpect(status().isOk())
+                .andExpect(jsonPath("$.decades[*].count", contains(2)));
+    }
+
+    /**
+     * 9.85 degrees wide is under 10 one-degree cells, so 0.1-degree cells 0..98 are used: 9.87
+     * (cell 98, outside the exact box) counts, 9.95 (cell 99, but 1-degree cell 9) does not.
+     */
+    @Test
+    void bboxJustUnderTenDegreesUsesTenthDegreeCells() throws Exception {
+        insert("Q1", "HAPPENED", 1, 1900, 1900, 9.87, 5);
+        insert("Q2", "HAPPENED", 1, 1900, 1900, 9.95, 5);
+        timeline("bbox=0,0,9.85,9.9").andExpect(status().isOk())
+                .andExpect(jsonPath("$.decades[*].count", contains(1)));
     }
 
     @Test

@@ -248,6 +248,36 @@ class SampleLoaderTest extends PostgisIntegrationTest {
         assertThat((Double) row.get("coord_precision_deg")).isCloseTo(0.001, within(EPS));
     }
 
+    @Test
+    void loadRebuildsTimelineCells() {
+        var result = loadMain(0);
+        for (int level = 0; level <= 2; level++) {
+            assertThat(timelineSum(level)).as("level %d", level).isEqualTo(result.eventsLoaded());
+        }
+    }
+
+    @Test
+    void secondLoadReplacesTimelineCells() {
+        loadMain(0);
+        loader.load(resource("items-second.jsonl"), resource("places-second.jsonl"), 0);
+        assertThat(timelineSum(0)).isEqualTo(1);
+        assertThat(jdbc.queryForList("SELECT DISTINCT kind FROM timeline_cells", String.class))
+                .containsExactly("HAPPENED");
+    }
+
+    @Test
+    void failedLoadKeepsPreviousTimelineCells() {
+        loadMain(0);
+        assertThatThrownBy(() -> loader.load(resource("items-malformed.jsonl"), resource("places-second.jsonl"), 0))
+                .isInstanceOf(RuntimeException.class);
+        assertThat(timelineSum(0)).isEqualTo(4);
+    }
+
+    private long timelineSum(int level) {
+        return jdbc.queryForObject(
+                "SELECT coalesce(sum(n), 0) FROM timeline_cells WHERE level = ?", Long.class, level);
+    }
+
     private void assertMainContentsUnchanged() {
         assertThat(eventIds()).containsExactlyInAnyOrder("Q1:HAPPENED", "Q2:BORN", "Q2:DIED", "Q3:FOUNDED");
         assertThat(jdbc.queryForList("SELECT qid FROM places", String.class))

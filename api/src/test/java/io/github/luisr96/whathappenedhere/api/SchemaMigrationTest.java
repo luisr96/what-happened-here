@@ -37,6 +37,45 @@ class SchemaMigrationTest extends PostgisIntegrationTest {
     }
 
     @Test
+    void flywayAppliedVersionsOneAndTwoSuccessfully() {
+        var rows = jdbc.queryForList(
+                "SELECT version, success FROM flyway_schema_history WHERE version IS NOT NULL ORDER BY installed_rank");
+        assertThat(rows).extracting(r -> r.get("version")).containsExactly("1", "2");
+        assertThat(rows).allSatisfy(r -> assertThat(r.get("success")).isEqualTo(true));
+    }
+
+    @Test
+    void timelineCellsColumns() {
+        var cols = columns("timeline_cells");
+        assertThat(cols.keySet()).containsExactlyInAnyOrder(
+                "level", "cell_x", "cell_y", "decade", "kind", "importance", "n");
+        assertThat(cols.get("level")).isEqualTo(new Column("smallint", "int2", false));
+        assertThat(cols.get("cell_x")).isEqualTo(new Column("integer", "int4", false));
+        assertThat(cols.get("cell_y")).isEqualTo(new Column("integer", "int4", false));
+        assertThat(cols.get("decade")).isEqualTo(new Column("bigint", "int8", false));
+        assertThat(cols.get("kind")).isEqualTo(new Column("text", "text", false));
+        assertThat(cols.get("importance")).isEqualTo(new Column("integer", "int4", false));
+        assertThat(cols.get("n")).isEqualTo(new Column("integer", "int4", false));
+    }
+
+    @Test
+    void timelineCellsPrimaryKey() {
+        assertThat(primaryKey("timeline_cells"))
+                .containsExactly("level", "cell_x", "cell_y", "decade", "kind", "importance");
+    }
+
+    @Test
+    void timelineCellsRejectsZeroCount() {
+        try {
+            assertRejected(() -> jdbc.update(
+                    "INSERT INTO timeline_cells VALUES (0, 0, 0, 1900, 'BORN', 1, 0)"));
+        } finally {
+            jdbc.update("DELETE FROM timeline_cells WHERE level = 0 AND cell_x = 0 AND cell_y = 0"
+                    + " AND decade = 1900 AND kind = 'BORN' AND importance = 1");
+        }
+    }
+
+    @Test
     void postgisExtensionInstalled() {
         assertThat(jdbc.queryForObject(
                 "SELECT count(*) FROM pg_extension WHERE extname = 'postgis'", Integer.class)).isEqualTo(1);

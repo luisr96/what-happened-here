@@ -1,5 +1,6 @@
 package io.github.luisr96.whathappenedhere.api.load;
 
+import io.github.luisr96.whathappenedhere.api.events.TimelineCells;
 import io.github.luisr96.whathappenedhere.extractor.HistoricDate;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -26,7 +27,8 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Loads sampler output ({@code items.jsonl}, {@code places.jsonl}) into Postgres, replacing what
  * is there. Lines are streamed with COPY into staging tables, then {@code sql/resolve.sql} copies
- * place coordinates onto events and drops what can't be resolved. All in one transaction.
+ * place coordinates onto events and drops what can't be resolved, and the timeline cells are
+ * rebuilt. All in one transaction.
  */
 @Component
 public class SampleLoader {
@@ -38,11 +40,14 @@ public class SampleLoader {
     private final DataSource dataSource;
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
+    private final TimelineCells timelineCells;
 
-    public SampleLoader(DataSource dataSource, JdbcTemplate jdbc, TransactionTemplate transaction) {
+    public SampleLoader(DataSource dataSource, JdbcTemplate jdbc, TransactionTemplate transaction,
+            TimelineCells timelineCells) {
         this.dataSource = dataSource;
         this.jdbc = jdbc;
         this.transaction = transaction;
+        this.timelineCells = timelineCells;
     }
 
     /**
@@ -59,6 +64,7 @@ public class SampleLoader {
             EventCounts events = stageEvents(items, minImportance);
             long placesRead = stagePlaces(places);
             jdbc.execute(RESOLVE_SQL);
+            timelineCells.rebuild();
             long loaded = count("events");
             return new LoadResult(events.read(), events.belowCutoff(), events.staged() - loaded,
                     loaded, placesRead, count("places"));

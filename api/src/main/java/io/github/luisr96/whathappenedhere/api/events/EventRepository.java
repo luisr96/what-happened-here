@@ -5,10 +5,13 @@ import io.github.luisr96.whathappenedhere.api.events.EventFilter.Circle;
 import io.github.luisr96.whathappenedhere.api.events.EventsResponse.DateView;
 import io.github.luisr96.whathappenedhere.api.events.EventsResponse.EventView;
 import io.github.luisr96.whathappenedhere.api.events.TimelineResponse.DecadeCount;
+import io.github.luisr96.whathappenedhere.extractor.Event;
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -40,19 +43,61 @@ public class EventRepository {
     }
 
     /**
-     * Matching events counted per decade of their earliest year, ascending, non-empty only.
-     * Counts every matching row (about 24 ms for 7,663 rows in the 100k sample), so a continent
-     * box on the full dump will be slow; that needs a pre-aggregated table (grid cell, kind,
-     * importance bucket, decade) or a default minImportance before step 6.
+     * Events per decade of their earliest year, ascending, non-empty only. A box spanning enough
+     * cells sums {@code timeline_cells} over every cell it touches, so it may count events up to
+     * one cell outside its edges; a smaller box counts events exactly. Only boxes are supported.
      */
-    public TimelineResponse timeline(EventFilter filter) {
+    public TimelineResponse timeline(Box box, Set<Event.Kind> kinds, int minImportance) {
+        // The whole timeline is wanted, so no from/to: both paths must count the same events.
+        EventFilter filter = new EventFilter(box, null, null, kinds, minImportance);
+        double width = box.crossesAntimeridian()
+                ? (180 - box.minLon()) + (box.maxLon() + 180)
+                : box.maxLon() - box.minLon();
+        int level = TimelineCells.levelFor(width, box.maxLat() - box.minLat());
+        return level < 0 ? countEvents(filter) : sumCells(filter, box, level);
+    }
+
+    private TimelineResponse sumCells(EventFilter filter, Box box, int level) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("level", level)
+                .addValue("size", BigDecimal.valueOf(TimelineCells.CELL_SIZES.get(level)))
+                .addValue("minLon", BigDecimal.valueOf(box.minLon()))
+                .addValue("maxLon", BigDecimal.valueOf(box.maxLon()))
+                .addValue("minLat", BigDecimal.valueOf(box.minLat()))
+                .addValue("maxLat", BigDecimal.valueOf(box.maxLat()))
+                .addValue("minImportance", filter.minImportance());
+        // Same numeric floor as sql/timeline_cells.sql, so box corners and points agree.
+        String cellX = box.crossesAntimeridian()
+                ? "(cell_x >= floor(:minLon / :size) OR cell_x <= floor(:maxLon / :size))"
+                : "cell_x BETWEEN floor(:minLon / :size) AND floor(:maxLon / :size)";
+        String sql = "SELECT decade, sum(n) AS n FROM timeline_cells WHERE level = :level AND "
+                + cellX + " AND cell_y BETWEEN floor(:minLat / :size) AND floor(:maxLat / :size)"
+                + " AND importance >= :minImportance"
+                + kindsCondition(filter, params)
+                + " GROUP BY decade ORDER BY decade";
+        return decades(sql, params);
+    }
+
+    private TimelineResponse countEvents(EventFilter filter) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         // floor, not integer division: -44 belongs to the -50 decade, not -40.
         String sql = "SELECT floor(earliest_year / 10.0)::bigint * 10 AS decade, count(*) AS n"
                 + " FROM events WHERE " + where(filter, params)
                 + " GROUP BY decade ORDER BY decade";
+        return decades(sql, params);
+    }
+
+    private TimelineResponse decades(String sql, MapSqlParameterSource params) {
         return new TimelineResponse(jdbc.query(sql, params,
                 (rs, row) -> new DecadeCount(rs.getLong("decade"), rs.getLong("n"))));
+    }
+
+    private static String kindsCondition(EventFilter filter, MapSqlParameterSource params) {
+        if (filter.kinds().isEmpty()) {
+            return "";
+        }
+        params.addValue("kinds", filter.kinds().stream().map(Enum::name).toList());
+        return " AND kind IN (:kinds)";
     }
 
     /** The filter as SQL, from fixed fragments; values go into {@code params}. */
@@ -72,11 +117,7 @@ public class EventRepository {
             where.add("earliest_year <= :to");
             params.addValue("to", filter.to());
         }
-        if (!filter.kinds().isEmpty()) {
-            where.add("kind IN (:kinds)");
-            params.addValue("kinds", filter.kinds().stream().map(Enum::name).toList());
-        }
-        return String.join(" AND ", where);
+        return String.join(" AND ", where) + kindsCondition(filter, params);
     }
 
     private static String box(Box box, MapSqlParameterSource params) {
