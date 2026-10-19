@@ -1,6 +1,6 @@
-import { useId, useState } from "react";
+import { useId, useState, type CSSProperties } from "react";
 import type { Kind } from "../api/client";
-import { KINDS, kindColor, kindLabel } from "../map/kinds";
+import { KINDS, kindLabel, kindStyle } from "../map/kinds";
 import type { Settings } from "../settings/settings";
 import { SettingsMenu } from "../settings/SettingsMenu";
 
@@ -31,37 +31,44 @@ export function SidePanel({
 
   return (
     <aside className="side-panel" aria-label="Filters and layers" data-open={open}>
-      <div id={contentId} className="side-panel__content" hidden={!open}>
-        <section>
-          <div className="side-panel__header">
+      <div id={contentId} className="side-panel__content panel" hidden={!open}>
+        <section className="panel-section">
+          <div className="panel-section__header">
             <h2>Filters</h2>
             {settings !== undefined && onSettingsChange !== undefined && (
               <SettingsMenu settings={settings} onChange={onSettingsChange} />
             )}
           </div>
           <fieldset className="kinds">
-            <legend>Kinds</legend>
+            <legend className="field-label">Kinds</legend>
             {KINDS.map((kind) => (
-              <label key={kind} className="kinds__option">
+              <label key={kind} className="kinds__option" style={kindStyle(kind)}>
                 <input
                   type="checkbox"
+                  className="checkbox"
                   checked={kinds.includes(kind)}
                   onChange={(e) => toggleKind(kind, e.target.checked)}
                 />
-                <span className="kinds__swatch" aria-hidden="true" style={{ background: `rgb(${kindColor(kind).join(" ")})` }} />
+                <span className="kinds__swatch" aria-hidden="true" />
                 {kindLabel(kind)}
               </label>
             ))}
           </fieldset>
           <div className="importance">
-            <label htmlFor={sliderId} title="Number of Wikipedia language editions with an article on it">
+            <label
+              htmlFor={sliderId}
+              className="field-label"
+              title="Number of Wikipedia language editions with an article on it"
+            >
               Covered in at least
             </label>
             {/* A span, not <output>: that is a live "status" region, which the truncation hint owns. */}
-            <span className="importance__value">{importanceText}</span>
+            <span className="value-pill">{importanceText}</span>
             <input
               id={sliderId}
               type="range"
+              className="range"
+              style={{ "--fill": String(minImportance / MAX_MIN_IMPORTANCE) } as CSSProperties}
               min={0}
               max={MAX_MIN_IMPORTANCE}
               step={1}
@@ -71,8 +78,10 @@ export function SidePanel({
             />
           </div>
         </section>
-        <section>
-          <h2>Layers</h2>
+        <section className="panel-section">
+          <div className="panel-section__header">
+            <h2>Layers</h2>
+          </div>
         </section>
       </div>
       <button
@@ -83,7 +92,16 @@ export function SidePanel({
         aria-label="Filters and layers panel"
         onClick={() => setOpen(!open)}
       >
-        {open ? "‹" : "›"}
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+          <path
+            d={open ? "M10 3.5 5.5 8l4.5 4.5" : "M6 3.5 10.5 8 6 12.5"}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
     </aside>
   );

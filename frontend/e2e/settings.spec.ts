@@ -44,7 +44,7 @@ test("choosing Miles shows the nearby search distance in miles", async ({ page }
   await expect(map).toHaveAttribute("aria-busy", "false");
 
   const settings = await openSettings(page);
-  await settings.getByRole("radio", { name: "Miles" }).check();
+  await settings.getByRole("radio", { name: "mi" }).check();
   await page.keyboard.press("Escape");
   await expect(settings).toBeHidden();
 

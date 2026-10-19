@@ -22,7 +22,7 @@ describe("SidePanel settings", () => {
     const panel = screen.getByRole("complementary", { name: "Filters and layers" });
 
     await user.click(within(panel).getByRole("button", { name: "Settings" }));
-    await user.click(screen.getByRole("radio", { name: "Miles" }));
+    await user.click(screen.getByRole("radio", { name: "mi" }));
 
     expect(onSettingsChange).toHaveBeenLastCalledWith({ units: "mi", mapStyle: "dark" });
   });

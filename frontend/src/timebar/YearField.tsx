@@ -39,6 +39,7 @@ export function YearField({ label, year, onCommit }: YearFieldProps) {
     <span className="year-field">
       <input
         type="number"
+        className="year-field__input"
         min={1}
         step={1}
         aria-label={`${label} year`}
@@ -60,6 +61,7 @@ export function YearField({ label, year, onCommit }: YearFieldProps) {
       <button
         type="button"
         className="year-field__era"
+        data-era={bc ? "bc" : "ad"}
         aria-label={`${label} era`}
         title={bc ? "Switch to AD" : "Switch to BC"}
         disabled={year === null}

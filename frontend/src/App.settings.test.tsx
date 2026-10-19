@@ -81,7 +81,7 @@ describe("App settings", () => {
     const panel = await openNearby();
     expect(within(panel).getByText("Within 2.3 km")).toBeInTheDocument();
 
-    await choose("Miles");
+    await choose("mi");
 
     expect(within(panel).getByText("Within 1.4 mi")).toBeInTheDocument();
     expect(within(panel).getByRole("slider", { name: "Search radius" })).toHaveAttribute("aria-valuetext", "1.4 mi");
@@ -90,7 +90,7 @@ describe("App settings", () => {
   it("keeps the chosen settings after a remount", async () => {
     const first = renderApp();
     await choose("Positron");
-    await choose("Miles");
+    await choose("mi");
     first.unmount();
     mapView.mapStyleUrl = undefined;
 

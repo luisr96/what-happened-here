@@ -51,24 +51,28 @@ export function TimeBar({ decades, range, onRangeChange }: TimeBarProps) {
   };
 
   return (
-    <section className="time-bar" aria-label="Timeline">
+    <section className="time-bar panel" aria-label="Timeline">
       <div className="time-bar__controls">
-        <YearField label="From" year={selected?.from ?? null} onCommit={(year) => setEnd("from", year)} />
-        <span aria-hidden="true">–</span>
-        <YearField label="To" year={selected?.to ?? null} onCommit={(year) => setEnd("to", year)} />
-        <button type="button" onClick={() => onRangeChange(null)} disabled={range === null}>
+        <div className="time-bar__range">
+          <YearField label="From" year={selected?.from ?? null} onCommit={(year) => setEnd("from", year)} />
+          <span className="time-bar__to" aria-hidden="true">to</span>
+          <YearField label="To" year={selected?.to ?? null} onCommit={(year) => setEnd("to", year)} />
+        </div>
+        <button type="button" className="button" onClick={() => onRangeChange(null)} disabled={range === null}>
           All time
         </button>
         <span className="time-bar__spacer" />
-        <IconButton label="Zoom in" onClick={() => zoomBy(1 / ZOOM_FACTOR)} disabled={view === null}>
-          <path d="M8 3v10M3 8h10" />
-        </IconButton>
-        <IconButton label="Zoom out" onClick={() => zoomBy(ZOOM_FACTOR)} disabled={atFullExtent}>
-          <path d="M3 8h10" />
-        </IconButton>
-        <IconButton label="Reset zoom" onClick={() => setZoomed(null)} disabled={atFullExtent}>
-          <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" />
-        </IconButton>
+        <div className="button-group">
+          <IconButton label="Zoom in" onClick={() => zoomBy(1 / ZOOM_FACTOR)} disabled={view === null}>
+            <path d="M8 3.5v9M3.5 8h9" />
+          </IconButton>
+          <IconButton label="Zoom out" onClick={() => zoomBy(ZOOM_FACTOR)} disabled={atFullExtent}>
+            <path d="M3.5 8h9" />
+          </IconButton>
+          <IconButton label="Reset zoom" onClick={() => setZoomed(null)} disabled={atFullExtent}>
+            <path d="M2.5 6V2.5H6M13.5 6V2.5H10M2.5 10v3.5H6M13.5 10v3.5H10" />
+          </IconButton>
+        </div>
       </div>
       <div className="time-bar__chart" onWheel={zoomAtCursor}>
         <Histogram decades={decades} view={view} range={range} />
@@ -98,8 +102,8 @@ type IconButtonProps = {
 function IconButton({ label, disabled, onClick, children }: IconButtonProps) {
   return (
     <button type="button" className="icon-button" aria-label={label} title={label} disabled={disabled} onClick={onClick}>
-      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
-        <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">{children}</g>
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+        <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{children}</g>
       </svg>
     </button>
   );

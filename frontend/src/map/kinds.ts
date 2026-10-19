@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Kind } from "../api/client";
 
 export type Rgb = readonly [number, number, number];
@@ -30,4 +31,12 @@ export function kindLabel(kind: Kind): string {
 
 export function kindColor(kind: Kind): Rgb {
   return COLORS[kind];
+}
+
+/**
+ * The kind's colour as a `--kind` custom property, so the stylesheet can draw a swatch or dot in
+ * the same colour as the map's points without the colours being repeated in CSS.
+ */
+export function kindStyle(kind: Kind): CSSProperties {
+  return { "--kind": `rgb(${COLORS[kind].join(" ")})` } as CSSProperties;
 }

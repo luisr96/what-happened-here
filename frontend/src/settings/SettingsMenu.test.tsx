@@ -41,10 +41,10 @@ describe("SettingsMenu", () => {
     const { d } = await open();
     expect(gear()).toHaveAttribute("aria-expanded", "true");
     expect(d).not.toHaveAttribute("aria-modal", "true");
-    const units = within(d).getByRole("radiogroup", { name: "Distance units" });
+    const units = within(d).getByRole("radiogroup", { name: "Unit" });
     expect(within(units).getAllByRole("radio")).toHaveLength(2);
-    expect(within(units).getByRole("radio", { name: "Kilometres" })).toBeInTheDocument();
-    expect(within(units).getByRole("radio", { name: "Miles" })).toBeInTheDocument();
+    expect(within(units).getByRole("radio", { name: "km" })).toBeInTheDocument();
+    expect(within(units).getByRole("radio", { name: "mi" })).toBeInTheDocument();
     const styles = within(d).getByRole("radiogroup", { name: "Map style" });
     for (const label of ["Dark", "Positron", "Liberty", "Bright", "Fiord"]) {
       expect(within(styles).getByRole("radio", { name: label })).toBeInTheDocument();
@@ -54,21 +54,21 @@ describe("SettingsMenu", () => {
   it("checks the current settings", async () => {
     renderMenu({ units: "mi", mapStyle: "liberty" });
     const { d } = await open();
-    expect(within(d).getByRole("radio", { name: "Miles" })).toBeChecked();
-    expect(within(d).getByRole("radio", { name: "Kilometres" })).not.toBeChecked();
+    expect(within(d).getByRole("radio", { name: "mi" })).toBeChecked();
+    expect(within(d).getByRole("radio", { name: "km" })).not.toBeChecked();
     expect(within(d).getByRole("radio", { name: "Liberty" })).toBeChecked();
   });
 
   it("moves focus to the first checked radio when it opens", async () => {
     renderMenu({ units: "mi", mapStyle: "liberty" });
     const { d } = await open();
-    await waitFor(() => expect(within(d).getByRole("radio", { name: "Miles" })).toHaveFocus());
+    await waitFor(() => expect(within(d).getByRole("radio", { name: "mi" })).toHaveFocus());
   });
 
   it("calls onChange with miles, keeping the map style", async () => {
     const { onChange } = renderMenu({ units: "km", mapStyle: "fiord" });
     const { user, d } = await open();
-    await user.click(within(d).getByRole("radio", { name: "Miles" }));
+    await user.click(within(d).getByRole("radio", { name: "mi" }));
     expect(onChange).toHaveBeenLastCalledWith({ units: "mi", mapStyle: "fiord" });
   });
 
@@ -126,5 +126,17 @@ describe("SettingsMenu focus leaving", () => {
     act(() => screen.getByRole("button", { name: "elsewhere" }).focus());
 
     expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
+  });
+});
+
+describe("SettingsMenu unit abbreviations", () => {
+  it("spells out km and mi in an abbr title", async () => {
+    const user = userEvent.setup();
+    render(<SettingsMenu settings={{ units: "km", mapStyle: "dark" }} onChange={() => {}} />);
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(screen.getByTitle("kilometres")).toHaveTextContent("km");
+    expect(screen.getByTitle("miles")).toHaveTextContent("mi");
+    expect(screen.getByRole("radio", { name: "km" })).toBeChecked();
   });
 });

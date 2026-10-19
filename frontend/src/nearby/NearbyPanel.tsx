@@ -1,7 +1,7 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
 import { useNearby, type NearbyQuery } from "../api/hooks";
 import { formatRange } from "../format/historicDate";
-import { kindLabel } from "../map/kinds";
+import { kindLabel, kindStyle } from "../map/kinds";
 import { clampRadius, formatDistance, MIN_SEARCH_RADIUS_M, type DistanceUnits, type Place } from "../map/nearby";
 import { usePanelFocus } from "../util/usePanelFocus";
 import { useThrottledValue } from "../util/useThrottledValue";
@@ -59,21 +59,24 @@ export function NearbyPanel({
     <aside
       ref={panel}
       tabIndex={-1}
-      className="details-panel"
+      className="details-panel panel"
       aria-label="What happened here"
       onKeyDown={(e) => {
         if (e.key === "Escape") onClose();
       }}
     >
       <button type="button" className="details-panel__close" aria-label="Close" title="Close" onClick={onClose}>
-        ×
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+          <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
       </button>
       <h2>What happened here</h2>
-      <p className="details-panel__note">Within {formatDistance(place.radius, units)}</p>
+      <p className="details-panel__meta">Within {formatDistance(place.radius, units)}</p>
       {onRadiusChange !== undefined && (
         <input
           type="range"
-          className="nearby-radius"
+          className="range nearby-radius"
+          style={{ "--fill": String(toSlider(place.radius) / SLIDER_STEPS) } as CSSProperties}
           aria-label="Search radius"
           min={0}
           max={SLIDER_STEPS}
@@ -83,11 +86,11 @@ export function NearbyPanel({
           onChange={(e) => onRadiusChange(fromSlider(Number(e.target.value)))}
         />
       )}
-      {filters === null && <p>Select at least one kind</p>}
-      {filters !== null && nearby.isPending && <p role="status">Loading…</p>}
+      {filters === null && <p className="details-panel__empty">Select at least one kind</p>}
+      {filters !== null && nearby.isPending && <p role="status" className="details-panel__note">Loading…</p>}
       {nearby.isPlaceholderData && <p role="status" className="details-panel__note">Updating…</p>}
       {nearby.isError && <p role="alert" className="details-panel__error">{nearby.error.message}</p>}
-      {nearby.isSuccess && nearby.data.events.length === 0 && <p>Nothing recorded here.</p>}
+      {nearby.isSuccess && nearby.data.events.length === 0 && <p className="details-panel__empty">Nothing recorded here.</p>}
       {nearby.isSuccess && nearby.data.events.length > 0 && (
         <ul className="nearby-list">
           {nearby.data.events.map((event) => (
@@ -95,6 +98,7 @@ export function NearbyPanel({
               <button
                 type="button"
                 className="nearby-list__item"
+                style={kindStyle(event.kind)}
                 ref={(el) => {
                   if (el === null) items.current.delete(event.id);
                   else items.current.set(event.id, el);
