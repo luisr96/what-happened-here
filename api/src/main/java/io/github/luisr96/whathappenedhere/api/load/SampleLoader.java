@@ -108,6 +108,7 @@ public class SampleLoader {
         JsonNode where = event.required("where");
         boolean isRef = where.has("qid");
         return csv(itemId + ":" + kind, itemId, kind, text(item.path("label")),
+                text(item.path("wikiTitle")),
                 item.required("importance").asInt(),
                 when.year(), when.month(), when.day(), when.precision(), when.calendar(),
                 end == null ? null : end.year(), end == null ? null : end.month(),

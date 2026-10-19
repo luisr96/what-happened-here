@@ -400,4 +400,64 @@ class ItemFactsTest {
     void geologicTypeIsNotSeason() {
         assertFalse(ItemFacts.isSeason(List.of("Q1123245")));
     }
+
+    @Test
+    void romeWikiTitle() {
+        assertEquals("Rome", ItemFacts.wikiTitle(entity("Q220").path("sitelinks")));
+    }
+
+    @Test
+    void mozartWikiTitle() {
+        assertEquals("Wolfgang Amadeus Mozart", ItemFacts.wikiTitle(entity("Q254").path("sitelinks")));
+    }
+
+    @Test
+    void ivanovkaHasNoEnglishWikipediaTitle() {
+        assertNull(ItemFacts.wikiTitle(entity("Q50829").path("sitelinks")));
+    }
+
+    @Test
+    void entityWithoutSitelinksHasNoWikiTitle() {
+        assertNull(ItemFacts.wikiTitle(entity("synthetic-no-sitelinks").path("sitelinks")));
+    }
+
+    @Test
+    void nullSitelinksHasNoWikiTitle() {
+        assertNull(ItemFacts.wikiTitle(null));
+    }
+
+    @Test
+    void wikiTitleKeepsNonAsciiAndPunctuation() {
+        assertEquals("Café \"Le Dôme\", Paris", ItemFacts.wikiTitle(
+                MAPPER.readTree("{\"enwiki\":{\"site\":\"enwiki\",\"title\":\"Café \\\"Le Dôme\\\", Paris\"}}")));
+    }
+
+    @Test
+    void otherLanguageTitleIsNotUsed() {
+        assertNull(ItemFacts.wikiTitle(json("{'dewiki':{'site':'dewiki','title':'Rom'},"
+                + "'enwikivoyage':{'site':'enwikivoyage','title':'Rome'}}")));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{'enwiki':{'site':'enwiki'}}",
+            "{'enwiki':{'site':'enwiki','title':''}}",
+            "{'enwiki':{'site':'enwiki','title':'   '}}",
+            "{'enwiki':{'site':'enwiki','title':null}}",
+            "{'enwiki':{'site':'enwiki','title':42}}",
+            "{'enwiki':{'site':'enwiki','title':{'x':'Rome'}}}",
+            "{'enwiki':'Rome'}",
+            "{'enwiki':null}",
+            "{}",
+            "[]",
+            "'Rome'",
+            "null"})
+    void unusableSitelinksGiveNoWikiTitle(String text) {
+        assertNull(ItemFacts.wikiTitle(json(text)));
+    }
+
+    @Test
+    void missingSitelinksNodeGivesNoWikiTitle() {
+        assertNull(ItemFacts.wikiTitle(json("{}").path("sitelinks")));
+    }
 }

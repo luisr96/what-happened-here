@@ -6,6 +6,7 @@ CREATE TEMP TABLE stage_events (
     item_id             text NOT NULL,
     kind                text NOT NULL,
     label               text,
+    wiki_title          text,
     importance          integer NOT NULL,
     year                bigint NOT NULL,
     month               smallint NOT NULL,

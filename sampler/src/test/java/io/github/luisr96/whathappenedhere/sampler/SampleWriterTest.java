@@ -29,7 +29,7 @@ class SampleWriterTest {
     @Test
     void itemRoundTripsWithBcYearAndNullEndDate() {
         var event = new Event(Event.Kind.FOUNDED, ROME_FOUNDED, null, new Event.Coordinates(41.89, 12.48, 0.0001));
-        var json = writeOne(new ExtractedItem("Q220", "Rome", 274, List.of("Q515"), List.of(event)));
+        var json = writeOne(new ExtractedItem("Q220", "Rome", "Rome", 274, List.of("Q515"), List.of(event)));
 
         assertEquals("Q220", json.get("itemId").asString());
         assertEquals("Rome", json.get("label").asString());
@@ -54,7 +54,7 @@ class SampleWriterTest {
         var start = new HistoricDate(1914, 0, 0, HistoricDate.Precision.YEAR, HistoricDate.Calendar.GREGORIAN);
         var end = new HistoricDate(1918, 11, 11, HistoricDate.Precision.DAY, HistoricDate.Calendar.GREGORIAN);
         var event = new Event(Event.Kind.HAPPENED, start, end, new Event.PlaceRef("Q46"));
-        var written = writeOne(new ExtractedItem("Q361", "World War I", 200, List.of(), List.of(event)))
+        var written = writeOne(new ExtractedItem("Q361", "World War I", "World War I", 200, List.of(), List.of(event)))
                 .get("events").get(0);
 
         assertEquals("Q46", written.at("/where/qid").asString());
@@ -68,7 +68,7 @@ class SampleWriterTest {
     @Test
     void unknownCoordinatePrecisionIsNull() {
         var event = new Event(Event.Kind.HAPPENED, ROME_FOUNDED, null, new Event.Coordinates(1.5, -2.5, null));
-        var written = writeOne(new ExtractedItem("Q1", "x", 1, List.of(), List.of(event))).get("events").get(0);
+        var written = writeOne(new ExtractedItem("Q1", "x", null, 1, List.of(), List.of(event))).get("events").get(0);
         assertTrue(written.at("/where/precision").isNull());
         assertEquals(-2.5, written.at("/where/longitude").asDouble());
     }
@@ -94,8 +94,24 @@ class SampleWriterTest {
     @Test
     void instanceOfIsAnEmptyArrayWhenItemHasNoP31() {
         var event = new Event(Event.Kind.FOUNDED, ROME_FOUNDED, null, new Event.PlaceRef("Q1"));
-        var json = writeOne(new ExtractedItem("Q2", "x", 1, List.of(), List.of(event)));
+        var json = writeOne(new ExtractedItem("Q2", "x", null, 1, List.of(), List.of(event)));
         assertTrue(json.get("instanceOf").isArray());
         assertEquals(0, json.get("instanceOf").size());
+    }
+
+    @Test
+    void wikiTitleIsWritten() {
+        var event = new Event(Event.Kind.FOUNDED, ROME_FOUNDED, null, new Event.Coordinates(41.89, 12.48, 0.0001));
+        var json = writeOne(new ExtractedItem("Q220", "Rome", "Café \"Le Dôme\", Paris", 274,
+                List.of(), List.of(event)));
+        assertEquals("Café \"Le Dôme\", Paris", json.get("wikiTitle").asString());
+    }
+
+    @Test
+    void missingWikiTitleIsWrittenAsJsonNull() {
+        var event = new Event(Event.Kind.FOUNDED, ROME_FOUNDED, null, new Event.Coordinates(41.89, 12.48, 0.0001));
+        var json = writeOne(new ExtractedItem("Q50829", "Ivanovka", null, 3, List.of(), List.of(event)));
+        assertTrue(json.has("wikiTitle"), "wikiTitle key is present even when null");
+        assertTrue(json.get("wikiTitle").isNull());
     }
 }

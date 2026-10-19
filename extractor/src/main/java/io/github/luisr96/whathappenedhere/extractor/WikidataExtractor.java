@@ -55,8 +55,8 @@ public final class WikidataExtractor {
         if (events.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(new ExtractedItem(
-                id.stringValue(), ItemFacts.label(entity.path("labels")), importance, instanceOf, events));
+        return Optional.of(new ExtractedItem(id.stringValue(), ItemFacts.label(entity.path("labels")),
+                ItemFacts.wikiTitle(entity.path("sitelinks")), importance, instanceOf, events));
     }
 
     private static List<Event> events(JsonNode claims, LocalDate today) {

@@ -67,6 +67,19 @@ public final class ItemFacts {
     }
 
     /**
+     * Title of the item's English Wikipedia article, used to fetch its summary.
+     *
+     * @return the title, or null when there is no usable enwiki sitelink
+     */
+    public static String wikiTitle(JsonNode sitelinks) {
+        if (sitelinks == null) {
+            return null;
+        }
+        JsonNode title = sitelinks.path("enwiki").path("title");
+        return title.isString() && !title.stringValue().isBlank() ? title.stringValue() : null;
+    }
+
+    /**
      * The item's display label: English, else the language-independent "mul" label, else the
      * label of the alphabetically first language code (so the choice is stable).
      *

@@ -26,6 +26,7 @@ public final class SampleWriter {
         ObjectNode line = MAPPER.createObjectNode();
         line.put("itemId", item.itemId());
         line.put("label", item.label());
+        line.put("wikiTitle", item.wikiTitle());
         line.put("importance", item.importance());
         var types = line.putArray("instanceOf");
         item.instanceOf().forEach(types::add);

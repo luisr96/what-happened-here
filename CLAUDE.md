@@ -144,8 +144,9 @@ periodic full re-import from a fresh dump is the safety net.
 7. follower on GitHub Actions
 
 ## Extractor model (target design)
-- `ExtractedItem(itemId, label, importance, instanceOf, events)`: per-item result. Item-level
-  facts live here once, not on every event; `instanceOf` (P31) feeds the junk report.
+- `ExtractedItem(itemId, label, wikiTitle, importance, instanceOf, events)`: per-item result.
+  Item-level facts live here once, not on every event; `instanceOf` (P31) feeds the junk report;
+  `wikiTitle` is the enwiki article title (null without one), used to fetch the Wikipedia summary.
 - `Event(kind, when, endDate, where)`.
 - `HistoricDate(year, month, day, precision, calendar)`: `year` is a `long`, negative for BC;
   never use `java.time` types for historic dates.

@@ -18,11 +18,11 @@ FROM stage_places p
 WHERE p.qid IN (SELECT place_qid FROM stage_events WHERE place_qid IS NOT NULL)
 ORDER BY p.qid, p.coord_precision_deg ASC NULLS LAST;
 
-INSERT INTO events (id, item_id, kind, label, importance,
+INSERT INTO events (id, item_id, kind, label, wiki_title, importance,
                     year, month, day, precision, calendar,
                     end_year, end_month, end_day, end_precision, end_calendar,
                     earliest_year, latest_year, place_qid, geom, coord_precision_deg)
-SELECT e.id, e.item_id, e.kind, e.label, e.importance,
+SELECT e.id, e.item_id, e.kind, e.label, e.wiki_title, e.importance,
        e.year, e.month, e.day, e.precision, e.calendar,
        e.end_year, e.end_month, e.end_day, e.end_precision, e.end_calendar,
        e.earliest_year, e.latest_year, e.place_qid,

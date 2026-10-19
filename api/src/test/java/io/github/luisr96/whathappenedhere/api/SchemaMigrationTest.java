@@ -37,10 +37,10 @@ class SchemaMigrationTest extends PostgisIntegrationTest {
     }
 
     @Test
-    void flywayAppliedVersionsOneAndTwoSuccessfully() {
+    void flywayAppliedVersionsOneToThreeSuccessfully() {
         var rows = jdbc.queryForList(
                 "SELECT version, success FROM flyway_schema_history WHERE version IS NOT NULL ORDER BY installed_rank");
-        assertThat(rows).extracting(r -> r.get("version")).containsExactly("1", "2");
+        assertThat(rows).extracting(r -> r.get("version")).containsExactly("1", "2", "3");
         assertThat(rows).allSatisfy(r -> assertThat(r.get("success")).isEqualTo(true));
     }
 
@@ -108,7 +108,7 @@ class SchemaMigrationTest extends PostgisIntegrationTest {
                 "id", "item_id", "kind", "label", "importance",
                 "year", "month", "day", "precision", "calendar",
                 "end_year", "end_month", "end_day", "end_precision", "end_calendar",
-                "earliest_year", "latest_year", "place_qid", "geom", "coord_precision_deg");
+                "earliest_year", "latest_year", "place_qid", "geom", "coord_precision_deg", "wiki_title");
         assertThat(cols.get("id")).isEqualTo(new Column("text", "text", false));
         assertThat(cols.get("item_id")).isEqualTo(new Column("text", "text", false));
         assertThat(cols.get("kind")).isEqualTo(new Column("text", "text", false));
@@ -130,6 +130,11 @@ class SchemaMigrationTest extends PostgisIntegrationTest {
         assertThat(cols.get("geom").udtName()).isEqualTo("geometry");
         assertThat(cols.get("geom").nullable()).isFalse();
         assertThat(cols.get("coord_precision_deg")).isEqualTo(new Column("double precision", "float8", true));
+    }
+
+    @Test
+    void eventsWikiTitleIsNullableText() {
+        assertThat(columns("events").get("wiki_title")).isEqualTo(new Column("text", "text", true));
     }
 
     @Test

@@ -211,6 +211,32 @@ class SampleLoaderTest extends PostgisIntegrationTest {
         assertThat(event("Q16:HAPPENED").get("label")).isNull();
     }
 
+    @Test
+    void wikiTitleIsStoredOnEveryEventOfTheItem() {
+        loader.load(resource("items-wiki.jsonl"), resource("places-second.jsonl"), 0);
+        assertThat(event("Q21:FOUNDED").get("wiki_title")).isEqualTo("Café \"Le Dôme\", Paris");
+        assertThat(event("Q21:ENDED").get("wiki_title")).isEqualTo("Café \"Le Dôme\", Paris");
+    }
+
+    @Test
+    void absentWikiTitleFieldLoadsAsNull() {
+        loader.load(resource("items-wiki.jsonl"), resource("places-second.jsonl"), 0);
+        assertThat(event("Q22:HAPPENED")).containsEntry("wiki_title", null);
+    }
+
+    @Test
+    void jsonNullWikiTitleLoadsAsNull() {
+        loader.load(resource("items-wiki.jsonl"), resource("places-second.jsonl"), 0);
+        assertThat(event("Q23:HAPPENED")).containsEntry("wiki_title", null);
+    }
+
+    @Test
+    void olderSampleWithoutWikiTitleStillLoads() {
+        loadMain(0);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM events WHERE wiki_title IS NOT NULL", Integer.class))
+                .isZero();
+    }
+
     @ParameterizedTest
     @CsvSource({
         "items-missing-longitude.jsonl, places-second.jsonl",

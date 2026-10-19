@@ -50,6 +50,18 @@ class WikidataExtractorTest {
             .orElseThrow(() -> new AssertionError("no " + kind + " in " + item.events()));
     }
 
+    @Test
+    void romeCarriesEnglishWikipediaTitle() {
+        assertEquals("Rome", extracted("Q220").wikiTitle());
+    }
+
+    @Test
+    void ivanovkaWithoutEnwikiHasNullTitleButStillHasEvents() {
+        var item = extracted("Q50829");
+        assertNull(item.wikiTitle());
+        assertFalse(item.events().isEmpty());
+    }
+
     private static void assertKinds(ExtractedItem item, Kind... kinds) {
         assertEquals(List.of(kinds), item.events().stream().map(Event::kind).toList());
     }
