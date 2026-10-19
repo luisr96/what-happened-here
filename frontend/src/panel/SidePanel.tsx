@@ -15,7 +15,8 @@ export function SidePanel({ kinds, onKindsChange, minImportance, onMinImportance
   const [open, setOpen] = useState(true);
   const contentId = useId();
   const sliderId = useId();
-  const importanceText = minImportance === 0 ? "Any" : `${minImportance} Wikipedias`;
+  const importanceText = minImportance === 0 ? "Any"
+    : `${minImportance} ${minImportance === 1 ? "language" : "languages"}`;
 
   // Rebuilt from KINDS rather than appended, so the list keeps API order whatever the click order.
   const toggleKind = (kind: Kind, checked: boolean) =>
@@ -41,7 +42,9 @@ export function SidePanel({ kinds, onKindsChange, minImportance, onMinImportance
             ))}
           </fieldset>
           <div className="importance">
-            <label htmlFor={sliderId}>Minimum importance</label>
+            <label htmlFor={sliderId} title="Number of Wikipedia language editions with an article on it">
+              Covered in at least
+            </label>
             {/* A span, not <output>: that is a live "status" region, which the truncation hint owns. */}
             <span className="importance__value">{importanceText}</span>
             <input

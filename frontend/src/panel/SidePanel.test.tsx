@@ -144,28 +144,50 @@ describe("SidePanel filters", () => {
     expect(onKindsChange).toHaveBeenCalledWith(["HAPPENED", "BORN", "FOUNDED", "ENDED", "OPENED"]);
   });
 
-  it("has a Minimum importance slider from 0 to 100 with the current value", () => {
+  it("has a \"Covered in at least\" slider from 0 to 100 with the current value", () => {
     render(<SidePanel {...props({ minImportance: 20 })} />);
-    const slider = screen.getByRole("slider", { name: "Minimum importance" });
+    const slider = screen.getByRole("slider", { name: "Covered in at least" });
     expect(slider).toHaveAttribute("min", "0");
     expect(slider).toHaveAttribute("max", "100");
     expect(slider).toHaveValue("20");
   });
 
-  it("shows the minimum importance as a number of Wikipedias", () => {
+  it("puts the importance slider under the Filters heading", () => {
+    render(<SidePanel {...props()} />);
+    const filters = screen.getByRole("heading", { name: "Filters" }).closest("section");
+    expect(filters).not.toBeNull();
+    expect(filters).toContainElement(screen.getByRole("slider", { name: "Covered in at least" }));
+  });
+
+  it("explains the importance label in a tooltip", () => {
+    render(<SidePanel {...props()} />);
+    const label = screen.getByText("Covered in at least");
+    expect(label).toHaveAttribute("title", "Number of Wikipedia language editions with an article on it");
+  });
+
+  it("shows the minimum importance as a number of languages", () => {
     render(<SidePanel {...props({ minImportance: 20 })} />);
-    expect(screen.getByText("20 Wikipedias")).toBeInTheDocument();
+    expect(screen.getByText("20 languages")).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Covered in at least" })).toHaveAttribute("aria-valuetext", "20 languages");
+    expect(screen.queryByText(/Wikipedias/)).not.toBeInTheDocument();
+  });
+
+  it("uses the singular for 1 language", () => {
+    render(<SidePanel {...props({ minImportance: 1 })} />);
+    expect(screen.getByText("1 language")).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Covered in at least" })).toHaveAttribute("aria-valuetext", "1 language");
   });
 
   it("shows \"Any\" for a minimum importance of 0", () => {
     render(<SidePanel {...props({ minImportance: 0 })} />);
     expect(screen.getByText("Any")).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Covered in at least" })).toHaveAttribute("aria-valuetext", "Any");
   });
 
   it("reports a moved slider as a number", () => {
     const onMinImportanceChange = vi.fn<(value: number) => void>();
     render(<SidePanel {...props({ onMinImportanceChange })} />);
-    fireEvent.change(screen.getByRole("slider", { name: "Minimum importance" }), { target: { value: "35" } });
+    fireEvent.change(screen.getByRole("slider", { name: "Covered in at least" }), { target: { value: "35" } });
     expect(onMinImportanceChange).toHaveBeenCalledWith(35);
   });
 });
