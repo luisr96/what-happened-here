@@ -16,6 +16,30 @@ export function clickRadiusMetres(lat: number, zoom: number, pixels = 30): numbe
   return Math.min(MAX_RADIUS_M, Math.max(1, Math.round(pixels * metresPerPixel)));
 }
 
+const EARTH_RADIUS_M = 6371008.8;
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+
+type LatLon = { readonly lat: number; readonly lon: number };
+
+/** Great-circle distance in metres (haversine), the short way round across the antimeridian. */
+export function distanceMetres(a: LatLon, b: LatLon): number {
+  const dLat = toRadians(b.lat - a.lat);
+  const dLon = toRadians(b.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRadians(a.lat)) * Math.cos(toRadians(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/** Where the resize handle sits: due east of the centre, `radius` away along its parallel. */
+export function edgePoint(place: Place): LatLon {
+  const lon = place.lon + (place.radius / (EARTH_RADIUS_M * Math.cos(toRadians(place.lat)))) * (180 / Math.PI);
+  return { lat: place.lat, lon: ((((lon + 180) % 360) + 360) % 360) - 180 };
+}
+
+/** A radius the API accepts: whole metres within 1..500000. */
+export function clampRadius(metres: number): number {
+  return Math.min(MAX_RADIUS_M, Math.max(1, Math.round(metres)));
+}
+
 /** "800 m", "2.3 km", "12 km". */
 export function formatDistance(metres: number): string {
   if (metres < 1000) return `${Math.round(metres)} m`;

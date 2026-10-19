@@ -2,12 +2,12 @@ import type { PickingInfo } from "@deck.gl/core";
 import { MapboxOverlay, type MapboxOverlayProps } from "@deck.gl/mapbox";
 import { useMemo, useState, type Ref } from "react";
 import type { LngLatBounds } from "maplibre-gl";
-import { Map, useControl } from "react-map-gl/maplibre";
+import { Map, Marker, useControl } from "react-map-gl/maplibre";
 import type { Bbox } from "../api/client";
 import type { EventView } from "../api/hooks";
 import { viewportToBbox } from "./bbox";
 import { placeLayer, pointLayers, selectionLayer } from "./eventLayers";
-import { clickRadiusMetres, type Place } from "./nearby";
+import { clampRadius, clickRadiusMetres, distanceMetres, edgePoint, type Place } from "./nearby";
 import { tooltipText } from "./tooltip";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
@@ -37,6 +37,8 @@ export type MapViewProps = {
   readonly onPlaceClick: (place: Place) => void;
   /** The area being listed, drawn as a faint disc; null when none. */
   readonly place: Place | null;
+  /** When given, the area gets a handle on its east edge; dragging it reports a new radius. */
+  readonly onPlaceRadiusChange?: (radius: number) => void;
   /** The map region, focusable from script (e.g. when the details panel closes). */
   readonly ref?: Ref<HTMLElement>;
 };
@@ -65,7 +67,7 @@ function tooltip({ object }: PickingInfo<EventView>) {
 }
 
 export function MapView({
-  events, onViewportChange, selectedId, selectedEvent, onSelect, onPlaceClick, place, ref,
+  events, onViewportChange, selectedId, selectedEvent, onSelect, onPlaceClick, place, onPlaceRadiusChange, ref,
 }: MapViewProps) {
   // Busy until MapLibre's load event, which fires once the style has loaded.
   const [loaded, setLoaded] = useState(false);
@@ -75,6 +77,7 @@ export function MapView({
   const selected = selectedEvent ?? (selectedId === null ? null : events.find((e) => e.id === selectedId) ?? null);
   const ring = useMemo(() => selectionLayer(selected), [selected]);
   const area = useMemo(() => placeLayer(place), [place]);
+  const edge = place === null ? null : edgePoint(place);
   // The searched area lies under the points so they stay hoverable and clickable inside it.
   const layers = useMemo(() => [area, ...points, ring], [area, points, ring]);
 
@@ -104,6 +107,18 @@ export function MapView({
         // MapLibre labels its canvas "Map" too; a distinct name keeps the landmark unique.
         locale={{ "Map.Title": "Pan and zoom area" }}
       >
+        {place !== null && edge !== null && onPlaceRadiusChange !== undefined && (
+          // An HTML marker rather than a deck.gl layer: it handles its own drag, so the map
+          // doesn't pan while the handle moves. The radius is the true distance to the pointer.
+          <Marker
+            longitude={edge.lon}
+            latitude={edge.lat}
+            draggable
+            onDrag={(e) => onPlaceRadiusChange(clampRadius(distanceMetres(place, { lat: e.lngLat.lat, lon: e.lngLat.lng })))}
+          >
+            <div className="area-handle" title="Drag to resize the search area" aria-label="Drag to resize the search area" />
+          </Marker>
+        )}
         <DeckOverlay
           layers={layers}
           getTooltip={tooltip}

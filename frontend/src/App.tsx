@@ -54,6 +54,9 @@ export function App() {
   // The same query the details panel runs (TanStack shares it), for the selection ring.
   const selectedEvent = useEvent(selectedId).data?.event ?? null;
   const close = () => setPanel(null);
+  // Resizing keeps the centre; only the open "what happened here" list can be resized.
+  const resize = (radius: number) =>
+    setPanel((current) => (current?.kind === "nearby" ? { ...current, place: { ...current.place, radius } } : current));
   const back = panel?.kind === "details" && panel.fromPlace !== null
     ? { place: panel.fromPlace, focusId: panel.id }
     : null;
@@ -69,6 +72,7 @@ export function App() {
         onSelect={(id) => setPanel({ kind: "details", id, fromPlace: null })}
         onPlaceClick={(clicked) => setPanel({ kind: "nearby", place: clicked })}
         place={place}
+        {...(panel?.kind === "nearby" && { onPlaceRadiusChange: resize })}
       />
       <MapNotices
         noKinds={noKinds}
@@ -97,6 +101,7 @@ export function App() {
           onSelect={(id) => setPanel({ kind: "details", id, fromPlace: panel.place })}
           onClose={close}
           returnFocusTo={mapRef}
+          onRadiusChange={resize}
         />
       )}
       <TimeBar decades={timeline.data?.decades ?? []} range={range} onRangeChange={setRange} />

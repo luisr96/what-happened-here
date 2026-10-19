@@ -114,3 +114,42 @@ test("dragging the map pans it without searching what happened there", async ({ 
   expect(nearbyRequests).toBe(0);
   await expect(page.getByRole("complementary", { name: "What happened here" })).toHaveCount(0);
 });
+
+test("pressing ArrowRight on Search radius searches a larger area", async ({ page }) => {
+  await setup(page);
+  await page.goto("/");
+  const map = page.getByRole("region", { name: "Map" });
+  await expect(map).toHaveAttribute("aria-busy", "false");
+  const box = await map.boundingBox();
+  if (box === null) throw new Error("map has no bounding box");
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  // Zoom in first: at the start zoom a click already searches the API's maximum of 500 km.
+  await page.mouse.move(x, y);
+  for (let i = 0; i < 6; i++) {
+    await page.mouse.wheel(0, -500);
+    await page.waitForTimeout(150);
+  }
+  await page.waitForTimeout(800);
+
+  const firstRequest = page.waitForRequest(isNearbyRequest);
+  const panel = page.getByRole("complementary", { name: "What happened here" });
+  await expect(async () => {
+    await page.mouse.click(x, y);
+    await expect(panel).toBeVisible({ timeout: 500 });
+  }).toPass({ timeout: 10_000 });
+  const firstRadius = Number(new URL((await firstRequest).url()).searchParams.get("radius"));
+  expect(firstRadius).toBeLessThan(500000);
+
+  const slider = panel.getByRole("slider", { name: "Search radius" });
+  const larger = page.waitForRequest(
+    (r) => isNearbyRequest(r) && Number(new URL(r.url()).searchParams.get("radius")) > firstRadius,
+  );
+  await slider.focus();
+  for (let i = 0; i < 5; i++) await slider.press("ArrowRight");
+
+  const radius = Number(new URL((await larger).url()).searchParams.get("radius"));
+  expect(Number.isInteger(radius)).toBe(true);
+  expect(radius).toBeLessThanOrEqual(500000);
+  await expect(slider).toBeFocused();
+});
