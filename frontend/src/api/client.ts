@@ -10,7 +10,7 @@ export type Bbox = {
 
 export type Kind = components["schemas"]["EventView"]["kind"];
 
-type Params = Readonly<Record<string, string | number | readonly string[] | undefined>>;
+export type Params = Readonly<Record<string, string | number | readonly string[] | undefined>>;
 
 /** A failed API call; `message` is fit to show the user. `status` is 0 when the server wasn't reached. */
 export class ApiError extends Error {
@@ -28,16 +28,36 @@ export function bboxParam(bbox: Bbox): string {
 }
 
 /**
- * GET `/api` + `path` (the dev proxy and hosting strip `/api`). Undefined params are left out,
- * arrays are sent comma-separated. An abort rejects with the `AbortError` itself, not an
- * `ApiError`, so callers can tell a cancelled request from a failed one.
+ * Where API paths are appended. By default `/api` on the page's own origin (the Vite dev proxy
+ * strips it). A build for a static host on another origin sets `VITE_API_BASE_URL` to the API's
+ * absolute URL (e.g. GitHub Pages calling Fly.io). A malformed value is a build mistake, so it
+ * throws rather than sending requests somewhere unexpected.
  */
-export async function apiGet<T>(path: string, params: Params, signal?: AbortSignal): Promise<T> {
-  const url = new URL(`/api${path}`, window.location.origin);
+export function apiBaseUrl(env: { VITE_API_BASE_URL?: string | undefined }): string {
+  const configured = env.VITE_API_BASE_URL?.trim() ?? "";
+  if (configured === "") return `${window.location.origin}/api`;
+  if (!/^https?:\/\/[^/]/.test(configured)) {
+    throw new Error(`VITE_API_BASE_URL must be an absolute http(s) URL, got "${configured}"`);
+  }
+  return configured.replace(/\/+$/, "");
+}
+
+/** `base` + `path` with the query: undefined params left out, arrays sent comma-separated. */
+export function apiUrl(base: string, path: string, params: Params): URL {
+  const url = new URL(`${base}${path}`);
   for (const [name, value] of Object.entries(params)) {
     if (value === undefined) continue;
     url.searchParams.set(name, typeof value === "object" ? value.join(",") : String(value));
   }
+  return url;
+}
+
+/**
+ * GET `path` from the API (see {@link apiBaseUrl}). An abort rejects with the `AbortError`
+ * itself, not an `ApiError`, so callers can tell a cancelled request from a failed one.
+ */
+export async function apiGet<T>(path: string, params: Params, signal?: AbortSignal): Promise<T> {
+  const url = apiUrl(apiBaseUrl(import.meta.env), path, params);
 
   let response: Response;
   try {
