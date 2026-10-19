@@ -23,4 +23,11 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // OpenApiContractTest compares against it, so editing it must rerun the tests.
+    inputs.files(rootProject.file("frontend/openapi.json")).withPropertyName("openApiContract")
+    // -PupdateOpenApi rewrites frontend/openapi.json from the generated /v3/api-docs.
+    if (providers.gradleProperty("updateOpenApi").isPresent) {
+        systemProperty("updateOpenApi", "true")
+        outputs.upToDateWhen { false }
+    }
 }
