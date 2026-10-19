@@ -55,7 +55,7 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
   that P625 statements exist, since a null best value can't tell "none" from "off Earth".)
 - Statements with snaktype `somevalue` or `novalue` carry no value; skip them.
 - Dates: keep precision (day/month/year/decade/century/millennium), support BC years,
-  record calendar (Julian vs Gregorian). UI shows e.g. "c. 1200s", never a fake exact date.
+  record calendar (Julian vs Gregorian). UI shows e.g. "13th century", never a fake exact date.
 - Place given as another item (P276, P19, P20, P159, P131): the extractor stores the place QID;
   coordinates are resolved later from a separate places table. In the database, events carry a
   copy of their place's coordinates (`events.geom`) for fast map queries, so whenever a place's

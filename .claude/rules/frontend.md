@@ -25,7 +25,7 @@ paths:
 - Derive values instead of storing them in state; `useMemo`/`useCallback` only for a measured
   cost or a stable identity a dependency needs (e.g. deck.gl layer props).
 - Historic dates are never JavaScript `Date`s: format from `{year, month, day, precision,
-  calendar}` (e.g. "c. 1200s", "44 BC"), the same rule as the backend's `HistoricDate`.
+  calendar}` (e.g. "13th century", "44 BC"), the same rule as the backend's `HistoricDate`.
 - Accessible by default: semantic elements, labels on controls, keyboard-reachable interactions.
 
 ## Comments and documentation
@@ -45,5 +45,5 @@ paths:
   tests of whole trees, no asserting on internal state or CSS classes.
 - The API is mocked at the network boundary (MSW in Vitest, `page.route` in Playwright) with
   responses that match the OpenAPI spec, including 400 problem details and empty results.
-- Test names describe behaviour (`shows "c. 1200s" for century precision`).
+- Test names describe behaviour (`shows "13th century" for century precision`).
 - Assert on what matters for the case, so adding a field doesn't break unrelated tests.

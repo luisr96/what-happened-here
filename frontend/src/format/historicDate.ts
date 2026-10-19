@@ -1,0 +1,63 @@
+import type { components } from "../api/schema";
+
+type DateView = components["schemas"]["DateView"];
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** Year in historical numbering (negative = BC, never 0) as shown on an axis: "1789", "44 BC". */
+export function formatYear(year: number): string {
+  return year < 0 ? `${-year} BC` : String(year);
+}
+
+/**
+ * A date at the precision Wikidata states, never more exact: "14 July 1789", "1880s",
+ * "19th century". Periods follow Wikidata (and the backend's `HistoricDate`): decades count
+ * from 0, centuries and millennia from 1, BC mirrors CE. The API always sends `year`; a
+ * missing or out-of-range month or day falls back to the next coarser precision.
+ */
+export function formatDate(date: DateView): string {
+  const year = date.year ?? 0;
+  const bc = year < 0 ? " BC" : "";
+  const magnitude = Math.abs(year);
+  const month = date.month === undefined ? undefined : MONTHS[date.month - 1];
+  const day = date.day !== undefined && date.day >= 1 && date.day <= 31 ? date.day : undefined;
+  // The calendar only changes the day and month shown, so only those carry the marker.
+  const julian = date.calendar === "JULIAN" ? " (Julian)" : "";
+
+  switch (date.precision) {
+    case "DAY":
+      if (month !== undefined && day !== undefined) {
+        return `${day} ${month} ${formatYear(year)}${julian}`;
+      }
+      return formatDate({ ...date, precision: "MONTH" });
+    case "MONTH":
+      return month === undefined ? formatYear(year) : `${month} ${formatYear(year)}${julian}`;
+    case "DECADE":
+      return `${Math.floor(magnitude / 10) * 10}s${bc}`;
+    case "CENTURY":
+      return `${ordinal(Math.ceil(magnitude / 100))} century${bc}`;
+    case "MILLENNIUM":
+      return `${ordinal(Math.ceil(magnitude / 1000))} millennium${bc}`;
+    default:
+      return formatYear(year);
+  }
+}
+
+/** "1914 – 1918"; one side alone when there's no end or both sides read the same. */
+export function formatRange(start: DateView, end?: DateView | null): string {
+  const from = formatDate(start);
+  if (!end) return from;
+  const to = formatDate(end);
+  return from === to ? from : `${from} – ${to}`;
+}
+
+/** 11th–13th take "th" whatever their last digit: 111th, but 101st. */
+function ordinal(n: number): string {
+  const lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 13) return `${n}th`;
+  const suffix = ["th", "st", "nd", "rd"][n % 10] ?? "th";
+  return `${n}${suffix}`;
+}
