@@ -114,6 +114,17 @@ periodic full re-import from a fresh dump is the safety net.
 - GET /events/{id}                               (details; Wikipedia summary fetched + cached)
 - GET /stats/timeline?bbox                       (counts per decade for the slider histogram)
 
+### Frontend look (kepler.gl-style, without its branding)
+- Full-screen dark map: OpenFreeMap's `dark` style (no token; credit OpenFreeMap and
+  OpenStreetMap). deck.gl layers attach to MapLibre through `MapboxOverlay`.
+- Points colored by event kind, with additive blending so dense areas glow; approximate
+  coordinates drawn as soft halos rather than sharp points.
+- Hover tooltips: label, kind, formatted date.
+- Dark, collapsible left side panel: filters (kinds, minimum importance) and layer options.
+- Time bar along the bottom: the /stats/timeline histogram, a draggable range that sets from/to,
+  and a play button that animates the range forward through time.
+- Plain React state and data hooks; no global store.
+
 ## Testing strategy (fail fast)
 1. Test cases: ~50 hand-picked entities saved as JSON, each with its expected events; unit tests.
    See docs/test-cases.md. Every weird case found later gets added there.
