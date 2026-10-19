@@ -6,6 +6,7 @@ import { Map, Marker, useControl } from "react-map-gl/maplibre";
 import type { Bbox } from "../api/client";
 import type { EventView } from "../api/hooks";
 import { viewportToBbox } from "./bbox";
+import "./maplibreWorker";
 import { placeLayer, pointLayers, selectionLayer } from "./eventLayers";
 import {
   clampRadius, clickRadiusMetres, distanceMetres, edgePoint, MIN_SEARCH_RADIUS_M, type Place,
