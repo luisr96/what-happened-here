@@ -39,6 +39,8 @@ export type MapViewProps = {
   readonly place: Place | null;
   /** When given, the area gets a handle on its east edge; dragging it reports a new radius. */
   readonly onPlaceRadiusChange?: (radius: number) => void;
+  /** When given, the area gets a cross at its centre; dragging it moves the area (same radius). */
+  readonly onPlaceMove?: (centre: { lat: number; lon: number }) => void;
   /** The basemap style (an OpenFreeMap style URL). */
   readonly mapStyleUrl: string;
   /** The map region, focusable from script (e.g. when the details panel closes). */
@@ -71,7 +73,7 @@ function tooltip({ object }: PickingInfo<EventView>) {
 }
 
 export function MapView({
-  events, onViewportChange, selectedId, selectedEvent, onSelect, onPlaceClick, place, onPlaceRadiusChange, mapStyleUrl, ref,
+  events, onViewportChange, selectedId, selectedEvent, onSelect, onPlaceClick, place, onPlaceRadiusChange, onPlaceMove, mapStyleUrl, ref,
 }: MapViewProps) {
   // Busy until MapLibre's load event, which fires once the style has loaded.
   const [loaded, setLoaded] = useState(false);
@@ -81,6 +83,9 @@ export function MapView({
   const selected = selectedEvent ?? (selectedId === null ? null : events.find((e) => e.id === selectedId) ?? null);
   const ring = useMemo(() => selectionLayer(selected), [selected]);
   const area = useMemo(() => placeLayer(place), [place]);
+  // The edge handle hides while dragged: the circle's own edge shows the radius, and the handle,
+  // snapped back onto the circle each frame, would otherwise jitter around it.
+  const [resizing, setResizing] = useState(false);
   // No handle near the poles, where a point due east along the parallel stops making sense;
   // the panel's slider still resizes there.
   const edge = place === null || Math.abs(place.lat) > MAX_HANDLE_LAT ? null : edgePoint(place);
@@ -120,19 +125,50 @@ export function MapView({
             longitude={edge.lon}
             latitude={edge.lat}
             draggable
+            onDragStart={() => setResizing(true)}
             onDrag={(e) => {
               const metres = distanceMetres(place, { lat: e.lngLat.lat, lon: e.lngLat.lng });
               onPlaceRadiusChange(clampRadius(Math.max(MIN_SEARCH_RADIUS_M, metres)));
             }}
+            onDragEnd={() => setResizing(false)}
           >
             {/* Pointer only; keyboard and screen-reader users resize with the panel's slider. */}
-            <div className="area-handle" title="Drag to resize the search area" aria-hidden="true" />
+            <div
+              className={resizing ? "area-handle area-handle--dragging" : "area-handle"}
+              title="Drag to resize the search area"
+              aria-hidden="true"
+            />
+          </Marker>
+        )}
+        {place !== null && onPlaceMove !== undefined && (
+          <Marker
+            longitude={place.lon}
+            latitude={place.lat}
+            draggable
+            onDrag={(e) => {
+              const lon = ((((e.lngLat.lng + 180) % 360) + 360) % 360) - 180;
+              onPlaceMove({ lat: e.lngLat.lat, lon });
+            }}
+          >
+            {/* Pointer only, like the edge handle; a new click on the map also moves the search. As
+                the centre moves, the edge handle follows (and hides past MAX_HANDLE_LAT, as it does
+                for any area that far north or south). */}
+            <div className="area-move" title="Drag to move the search area" aria-hidden="true">
+              <svg viewBox="0 0 16 16" width="16" height="16" focusable="false">
+                <path d="M8 2v12M2 8h12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
           </Marker>
         )}
         <DeckOverlay
           layers={layers}
           getTooltip={tooltip}
-          onClick={({ object, coordinate, viewport }: PickingInfo<EventView>) => {
+          onClick={({ object, coordinate, viewport }: PickingInfo<EventView>, event: { srcEvent?: unknown }) => {
+            // A click (or a drag too short to count as one) on the move or resize handle reaches
+            // the map too; it must not start a new search where the handle was let go. Overlaid,
+            // deck.gl passes on MapLibre's event, which wraps the DOM event as `originalEvent`.
+            const target = (event.srcEvent as { originalEvent?: Event } | undefined)?.originalEvent?.target;
+            if (target instanceof Element && target.closest(".maplibregl-marker") !== null) return;
             if (object !== undefined) {
               onSelect(object.id);
             } else if (coordinate !== undefined && viewport !== undefined) {

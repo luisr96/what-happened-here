@@ -59,14 +59,14 @@ async function openNearby() {
 }
 
 describe("App settings", () => {
-  it("passes the dark OpenFreeMap style to the map by default", () => {
+  it("passes the liberty OpenFreeMap style to the map by default", () => {
     renderApp();
-    expect(mapView.mapStyleUrl).toBe("https://tiles.openfreemap.org/styles/dark");
+    expect(mapView.mapStyleUrl).toBe("https://tiles.openfreemap.org/styles/liberty");
   });
 
   it("has the Settings gear in the left panel", () => {
     renderApp();
-    const side = screen.getByRole("complementary", { name: "Filters and layers" });
+    const side = screen.getByRole("complementary", { name: "Filters" });
     expect(within(side).getByRole("button", { name: "Settings" })).toBeInTheDocument();
   });
 
@@ -110,6 +110,6 @@ describe("App settings", () => {
   it("starts with the defaults when localStorage holds garbage", () => {
     localStorage.setItem(KEY, "{oops");
     renderApp();
-    expect(mapView.mapStyleUrl).toBe("https://tiles.openfreemap.org/styles/dark");
+    expect(mapView.mapStyleUrl).toBe("https://tiles.openfreemap.org/styles/liberty");
   });
 });

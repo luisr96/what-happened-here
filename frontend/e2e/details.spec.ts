@@ -6,7 +6,7 @@ import { caesarDetails, caesarDied } from "../src/test/apiFixtures";
 type EventView = components["schemas"]["EventView"];
 type EventDetails = components["schemas"]["EventDetails"];
 
-const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
+const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const minimalStyle = {
   version: 8,
   sources: {},

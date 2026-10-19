@@ -13,8 +13,8 @@ function stored(): unknown {
 }
 
 describe("settings constants", () => {
-  it("defaults to kilometres and the dark style", () => {
-    expect(DEFAULT_SETTINGS).toEqual({ units: "km", mapStyle: "dark" });
+  it("defaults to kilometres and the liberty style", () => {
+    expect(DEFAULT_SETTINGS).toEqual({ units: "km", mapStyle: "liberty" });
   });
 
   it("lists the five OpenFreeMap styles with their labels, in order", () => {
@@ -74,7 +74,7 @@ describe("useSettings", () => {
   it("fills a missing field from the defaults", () => {
     localStorage.setItem(KEY, JSON.stringify({ units: "mi" }));
     const { result } = renderHook(() => useSettings());
-    expect(result.current[0]).toEqual({ units: "mi", mapStyle: "dark" });
+    expect(result.current[0]).toEqual({ units: "mi", mapStyle: "liberty" });
   });
 
   it("replaces only the invalid field with its default", () => {
@@ -85,7 +85,7 @@ describe("useSettings", () => {
 
   it("rejects an unknown map style and a wrongly typed field", () => {
     localStorage.setItem(KEY, JSON.stringify({ units: "mi", mapStyle: "satellite" }));
-    expect(renderHook(() => useSettings()).result.current[0]).toEqual({ units: "mi", mapStyle: "dark" });
+    expect(renderHook(() => useSettings()).result.current[0]).toEqual({ units: "mi", mapStyle: "liberty" });
     localStorage.setItem(KEY, JSON.stringify({ units: 1, mapStyle: ["liberty"] }));
     expect(renderHook(() => useSettings()).result.current[0]).toEqual(DEFAULT_SETTINGS);
   });

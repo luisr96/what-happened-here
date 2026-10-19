@@ -5,7 +5,7 @@ import { caesarDied, fijiFounded, lisbonEarthquake } from "../src/test/apiFixtur
 
 type EventsResponse = components["schemas"]["EventsResponse"];
 
-const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
+const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const minimalStyle = {
   version: 8,
   sources: {},
@@ -48,11 +48,13 @@ test("requests events for the loaded map's viewport", async ({ page }) => {
   await expect(page.getByText(TRUNCATED_HINT)).toBeHidden();
 });
 
-test("shows the truncation hint for a truncated response", async ({ page }) => {
+test("shows no notice for a truncated response", async ({ page }) => {
+  const loaded = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/events");
   await setup(page, { events: [fijiFounded], truncated: true });
   await page.goto("/");
+  await loaded;
 
-  await expect(page.getByRole("status").filter({ hasText: TRUNCATED_HINT })).toBeVisible();
+  await expect(page.getByText(TRUNCATED_HINT)).toHaveCount(0);
 });
 
 test("unchecking Died requests events without DIED", async ({ page }) => {
@@ -69,4 +71,22 @@ test("unchecking Died requests events without DIED", async ({ page }) => {
 
   const kinds = new URL((await filtered).url()).searchParams.get("kinds")?.split(",");
   expect(kinds).toEqual(["HAPPENED", "BORN", "FOUNDED", "ENDED", "OPENED"]);
+});
+
+test("choosing Famous requests events with minImportance=100", async ({ page }) => {
+  await setup(page, { events: [caesarDied], truncated: false });
+  const first = page.waitForRequest(isEventsRequest);
+  await page.goto("/");
+  await expect(page.getByRole("region", { name: "Map" })).toHaveAttribute("aria-busy", "false");
+  await first;
+
+  const filtered = page.waitForRequest(
+    (r) => isEventsRequest(r) && new URL(r.url()).searchParams.get("minImportance") === "100",
+  );
+  const importance = page.getByRole("radiogroup", { name: "Importance" });
+  await importance.getByRole("radio", { name: "Famous" }).check();
+
+  await filtered;
+  await expect(importance.getByRole("radio", { name: "Famous" })).toBeChecked();
+  await expect(page.getByRole("group", { name: "Events" }).getByRole("checkbox")).toHaveCount(6);
 });

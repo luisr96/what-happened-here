@@ -8,7 +8,10 @@ import type { YearRange } from "./timeScale";
 
 type DecadeCount = components["schemas"]["DecadeCount"];
 
-/** Extent -50..2029: a BC decade, decade 0 (years 1..9), a busy 1880s and the 2020s; unsorted. */
+/** The current year: the 2020s decade ends there, not in 2029. */
+const NOW = new Date().getFullYear();
+
+/** Extent -50..NOW: a BC decade, decade 0 (years 1..9), a busy 1880s and the 2020s; unsorted. */
 const decades: readonly DecadeCount[] = [
   { decade: 1880, count: 919 },
   { decade: -50, count: 3 },
@@ -149,12 +152,12 @@ describe("TimeBar handles", () => {
     for (const slider of [fromSlider(), toSlider()]) {
       expect(slider).toHaveAttribute("tabindex", "0");
       expect(slider).toHaveAttribute("aria-valuemin", "-50");
-      expect(slider).toHaveAttribute("aria-valuemax", "2029");
+      expect(slider).toHaveAttribute("aria-valuemax", String(NOW));
     }
     expect(fromSlider()).toHaveAttribute("aria-valuenow", "-50");
     expect(fromSlider()).toHaveAttribute("aria-valuetext", "50 BC");
-    expect(toSlider()).toHaveAttribute("aria-valuenow", "2029");
-    expect(toSlider()).toHaveAttribute("aria-valuetext", "2029");
+    expect(toSlider()).toHaveAttribute("aria-valuenow", String(NOW));
+    expect(toSlider()).toHaveAttribute("aria-valuetext", String(NOW));
     expect(screen.getAllByRole("slider")).toHaveLength(2);
   });
 
@@ -174,17 +177,17 @@ describe("TimeBar handles", () => {
     expect(fromEra()).toHaveTextContent("BC");
     expect(toYear()).toHaveValue(5000);
     expect(fromSlider()).toHaveAttribute("aria-valuenow", "-50");
-    expect(toSlider()).toHaveAttribute("aria-valuenow", "2029");
+    expect(toSlider()).toHaveAttribute("aria-valuenow", String(NOW));
   });
 
   it("ArrowRight and ArrowUp move From one year later, keeping the view's end as To", () => {
     const { onRangeChange } = renderBar();
 
     fireEvent.keyDown(fromSlider(), { key: "ArrowRight" });
-    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -49, to: 2029 });
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -49, to: NOW });
 
     fireEvent.keyDown(fromSlider(), { key: "ArrowUp" });
-    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -49, to: 2029 });
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -49, to: NOW });
   });
 
   it("ArrowLeft and ArrowDown move To one year earlier, keeping From", () => {
@@ -250,7 +253,7 @@ describe("TimeBar handles", () => {
     fromSlider().focus();
     fireEvent.keyDown(fromSlider(), { key: "End" });
 
-    expect(onChange).toHaveBeenLastCalledWith({ from: 1900, to: 2029 });
+    expect(onChange).toHaveBeenLastCalledWith({ from: 1900, to: NOW });
     expect(toSlider()).toHaveFocus();
   });
 
@@ -371,7 +374,7 @@ describe("TimeBar typed years", () => {
 
     expect(fromYear()).toHaveValue(50);
     expect(fromEra()).toHaveTextContent("BC");
-    expect(toYear()).toHaveValue(2029);
+    expect(toYear()).toHaveValue(NOW);
     expect(toEra()).toHaveTextContent("AD");
     expect(fromYear()).toHaveAttribute("min", "1");
   });
@@ -414,7 +417,7 @@ describe("TimeBar typed years", () => {
     await user.clear(fromYear());
     await user.type(fromYear(), "5000{Enter}");
 
-    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -5000, to: 2029 });
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -5000, to: NOW });
   });
 
   it("swap the ends when the typed From is after To", async () => {
@@ -468,7 +471,7 @@ describe("TimeBar typed years", () => {
 
     await user.click(fromEra());
 
-    expect(onRangeChange).toHaveBeenLastCalledWith({ from: 50, to: 2029 });
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: 50, to: NOW });
   });
 
   it("a typed year with the BC era is negative", async () => {
@@ -503,7 +506,7 @@ describe("TimeBar zoom", () => {
 
     const { min, max } = sliderSpan();
     expect(min).toBeGreaterThan(-50);
-    expect(max).toBeLessThan(2029);
+    expect(max).toBeLessThan(NOW);
     expect(max - min).toBeGreaterThanOrEqual(50);
     expect(within(histogram()).queryByTitle("50 BC – 41 BC: 3 events")).not.toBeInTheDocument();
     expect(within(histogram()).queryByTitle("2020 – 2029: 4 events")).not.toBeInTheDocument();
@@ -511,7 +514,7 @@ describe("TimeBar zoom", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Reset zoom" }));
 
-    expect(sliderSpan()).toEqual({ min: -50, max: 2029 });
+    expect(sliderSpan()).toEqual({ min: -50, max: NOW });
     expect(bars()).toHaveLength(4);
     expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
   });
@@ -559,5 +562,65 @@ describe("TimeBar zoom", () => {
     fireEvent.keyDown(fromSlider(), { key: "Home" });
 
     expect(onRangeChange).toHaveBeenLastCalledWith({ from: min, to: 2029 });
+  });
+});
+
+describe("TimeBar typed years are at most 4 digits", () => {
+  it("caps the boxes at 9999", () => {
+    renderBar();
+
+    expect(fromYear()).toHaveAttribute("max", "9999");
+    expect(toYear()).toHaveAttribute("max", "9999");
+  });
+
+  it("ignores a typed 5th digit and shows nothing invalid", async () => {
+    const user = userEvent.setup();
+    const { onRangeChange } = renderBar({ from: 1800, to: 1900 });
+
+    await user.clear(toYear());
+    await user.type(toYear(), "1950");
+    await user.type(toYear(), "7");
+
+    expect(toYear()).toHaveValue(1950);
+    expect(toYear()).not.toHaveAttribute("aria-invalid", "true");
+    await user.keyboard("{Enter}");
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: 1800, to: 1950 });
+  });
+
+  it("keeps the first 4 digits of a typed \"12345\"", async () => {
+    const user = userEvent.setup();
+    const { onRangeChange } = renderBar({ from: -44, to: 14 });
+
+    await user.clear(fromYear());
+    await user.type(fromYear(), "12345");
+
+    expect(fromYear()).toHaveValue(1234);
+    await user.keyboard("{Enter}");
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -1234, to: 14 });
+  });
+
+  it("keeps the first 4 digits of a pasted \"12345\"", async () => {
+    const user = userEvent.setup();
+    renderBar({ from: 1800, to: 1900 });
+
+    await user.clear(toYear());
+    await user.click(toYear());
+    await user.paste("12345");
+
+    expect(toYear()).toHaveValue(1234);
+    expect(toYear()).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  it.each([
+    ["1", 1],
+    ["9999", 9999],
+  ])("commits the boundary year %s", async (typed, year) => {
+    const user = userEvent.setup();
+    const { onRangeChange } = renderBar({ from: -10000, to: 14 });
+
+    await user.clear(toYear());
+    await user.type(toYear(), `${typed}{Enter}`);
+
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -10000, to: year });
   });
 });

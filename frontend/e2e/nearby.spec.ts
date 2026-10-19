@@ -6,7 +6,7 @@ import { caesarDetails, caesarDied, mozartBorn, mozartDetailsNoWikipedia } from 
 type EventsResponse = components["schemas"]["EventsResponse"];
 type EventDetails = components["schemas"]["EventDetails"];
 
-const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
+const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const minimalStyle = {
   version: 8,
   sources: {},
@@ -152,4 +152,34 @@ test("pressing ArrowRight on Search radius searches a larger area", async ({ pag
   expect(Number.isInteger(radius)).toBe(true);
   expect(radius).toBeLessThanOrEqual(500000);
   await expect(slider).toBeFocused();
+});
+
+test("clicking or barely dragging the centre cross doesn't start a new search", async ({ page }) => {
+  await setup(page);
+  await page.goto("/");
+  const map = page.getByRole("region", { name: "Map" });
+  await expect(map).toHaveAttribute("aria-busy", "false");
+  const box = await map.boundingBox();
+  if (box === null) throw new Error("map has no box");
+  await expect(async () => {
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(page.getByRole("complementary", { name: "What happened here" })).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 10_000 });
+
+  const slider = page.getByRole("slider", { name: "Search radius" });
+  const cross = page.getByTitle("Drag to move the search area");
+  for (const dx of [0, 2]) {
+    await slider.focus();
+    const c = await cross.boundingBox();
+    if (c === null) throw new Error("no cross");
+    const x = c.x + c.width / 2;
+    const y = c.y + c.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    if (dx > 0) await page.mouse.move(x + dx, y, { steps: 2 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+    // A new search would remount the panel, which takes focus.
+    await expect(slider).toBeFocused();
+  }
 });

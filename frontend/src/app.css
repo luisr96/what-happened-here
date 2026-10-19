@@ -527,15 +527,15 @@ body,
   box-shadow: none;
 }
 
+/* Label above, the All / Notable / Famous switch across the panel's full width below. */
 .importance {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  row-gap: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
-.importance .range {
-  grid-column: 1 / -1;
+.importance .segmented__option {
+  padding: 0 var(--space-2);
 }
 
 /* ------------------------------------------------------------------------------------------
@@ -686,6 +686,7 @@ body,
 .time-bar__range {
   display: inline-flex;
   align-items: stretch;
+  padding: 0 6px;
   height: var(--control-h);
   border: 1px solid var(--control-border);
   border-radius: var(--radius-control);
@@ -712,10 +713,11 @@ body,
 
 /* One end of the range: caption, number, then the era as a small toggle chip. The segment being
    edited lights up inside the shared box. */
+/* Equal padding on both sides of each field, so the "to" between them sits centred. */
 .year-field {
   display: inline-flex;
   align-items: center;
-  padding: 0 3px 0 8px;
+  padding: 0 3px;
   border-radius: calc(var(--radius-control) - 1px);
   transition: background-color 0.12s, box-shadow 0.12s;
 }
@@ -735,12 +737,11 @@ body,
 }
 
 .year-field__input {
-  /* Grows with the number where supported (Chrome, Edge); 4 digits fit the fallback width. */
-  width: calc(4ch + 10px);
-  min-width: calc(2ch + 10px);
-  field-sizing: content;
+  /* One fixed width for both boxes: 4 digits (YearField's cap) plus padding, border-box. In em,
+     not ch: ch is the width of a plain "0", narrower than the tabular digits used here. */
+  width: calc(2.6em + 8px);
   height: 100%;
-  padding: 0 8px 0 2px;
+  padding: 0 6px 0 0;
   border: 0;
   background: transparent;
   color: var(--text);
@@ -872,7 +873,7 @@ body,
   top: 12px;
   right: 12px;
   /* Stops above the map credit, which sits just over the time bar and must stay visible. */
-  bottom: calc(var(--time-bar-height) + 48px);
+  bottom: calc(var(--time-bar-height) + 52px);
   width: min(340px, calc(100% - 24px));
   overflow-y: auto;
   padding: var(--space-4);
@@ -1138,6 +1139,9 @@ body,
 
 /* Keep MapLibre's controls readable on any style. */
 .map .maplibregl-ctrl-attrib {
+  /* MapLibre's own margin is dropped so the credit's right edge lines up with the panels'. */
+  margin: 0;
+  border-radius: 4px;
   background: rgb(12 12 12 / 70%);
   color: var(--text-muted);
 }
@@ -1146,8 +1150,10 @@ body,
   color: var(--text-muted);
 }
 
+/* Same right inset as the time bar and the details panel (12px); 10px gaps above and below. */
 .maplibregl-ctrl-bottom-right {
-  bottom: calc(var(--time-bar-height) + 16px);
+  right: 12px;
+  bottom: calc(var(--time-bar-height) + 22px);
 }
 
 .map-notices {
@@ -1176,10 +1182,6 @@ body,
   text-align: center;
 }
 
-.map-notice[hidden] {
-  display: none;
-}
-
 .map-notice--error {
   border-color: var(--danger-border);
 }
@@ -1188,4 +1190,19 @@ body,
 .segmented abbr {
   text-decoration: none;
   cursor: inherit;
+}
+
+.area-handle--dragging {
+  opacity: 0;
+}
+
+/* The centre cross that moves the search area: drawn with a dark halo so it reads on any map. */
+.area-move {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 90%)) drop-shadow(0 0 2px rgb(0 0 0 / 60%));
+  cursor: move;
 }

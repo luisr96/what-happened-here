@@ -98,7 +98,7 @@ describe("App", () => {
     renderApp();
 
     expect(screen.getByRole("region", { name: "Map" })).toBeInTheDocument();
-    expect(screen.getByRole("complementary", { name: "Filters and layers" })).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Filters" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Timeline" })).toBeInTheDocument();
   });
 });
@@ -200,16 +200,38 @@ describe("App events on the map", () => {
     expect(mapEvents().queryByText("Julius Caesar")).not.toBeInTheDocument();
   });
 
-  it("sends minImportance when the slider moves", async () => {
+  it.each([
+    ["Notable", "50"],
+    ["Famous", "100"],
+  ])("requests minImportance right away when %s is chosen (no debounce)", async (name, value) => {
+    const user = userEvent.setup();
     const urls = recordEvents();
     renderApp();
     reportViewport(europe);
     await waitFor(() => expect(urls).toHaveLength(1));
 
-    fireEvent.change(screen.getByRole("slider", { name: "Covered in at least" }), { target: { value: "20" } });
+    await user.click(screen.getByRole("radio", { name }));
 
-    await waitFor(() => expect(urls.some((u) => u.searchParams.get("minImportance") === "20")).toBe(true));
-    expect(screen.getByText("20 languages")).toBeInTheDocument();
+    await waitFor(() => expect(urls.at(-1)?.searchParams.get("minImportance")).toBe(value), { timeout: 100 });
+    expect(screen.getByRole("radio", { name })).toBeChecked();
+  });
+
+  it("goes back to unfiltered events when All is chosen again", async () => {
+    const user = userEvent.setup();
+    const urls = recordEvents((url) =>
+      HttpResponse.json(url.searchParams.get("minImportance") === "100" ? emptyEvents : eventsPage));
+    renderApp();
+    reportViewport(europe);
+    expect(await mapEvents().findByText("Julius Caesar")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "Famous" }));
+    await waitFor(() => expect(urls.at(-1)?.searchParams.get("minImportance")).toBe("100"), { timeout: 100 });
+    await waitFor(() => expect(mapEvents().queryByText("Julius Caesar")).not.toBeInTheDocument());
+
+    await user.click(screen.getByRole("radio", { name: "All" }));
+
+    expect(await mapEvents().findByText("Julius Caesar", {}, { timeout: 100 })).toBeInTheDocument();
+    expect(urls.filter((u) => u.searchParams.has("minImportance")).every((u) => u.searchParams.get("minImportance") === "100")).toBe(true);
   });
 
   it("refetches when the viewport changes", async () => {
@@ -242,22 +264,14 @@ describe("App events on the map", () => {
     expect(mapEvents().queryByText("Julius Caesar")).not.toBeInTheDocument();
   });
 
-  it("explains a truncated result in a status message", async () => {
+  it("shows no notice for a truncated result (the user removed it)", async () => {
     recordEvents(() => HttpResponse.json(otherEventsPage));
     renderApp();
     reportViewport(europe);
 
-    const status = await screen.findByRole("status");
-    expect(status).toHaveTextContent(TRUNCATED_HINT);
-  });
-
-  it("shows no truncation hint when the result is complete", async () => {
-    recordEvents(() => HttpResponse.json(eventsPage));
-    renderApp();
-    reportViewport(europe);
-
-    await mapEvents().findByText("Julius Caesar");
+    await mapEvents().findByText("Some village");
     expect(screen.queryByText(TRUNCATED_HINT)).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("shows a 400 problem's detail in an alert", async () => {
@@ -279,7 +293,8 @@ function recordTimeline(body: TimelineResponse = appTimeline) {
   return urls;
 }
 
-/** Extent 50 BC..2029. */
+/** Extent 50 BC..the current year (the 2020s end now, not in 2029). */
+const NOW = new Date().getFullYear();
 const appTimeline: TimelineResponse = {
   decades: [
     { decade: -50, count: 3 },
@@ -339,7 +354,7 @@ describe("App timeline", () => {
 
     await waitFor(() => expect(urls.some((u) => u.searchParams.get("from") === "-49")).toBe(true), { timeout: 150 });
     const ranged = urls.find((u) => u.searchParams.get("from") === "-49");
-    expect(ranged?.searchParams.get("to")).toBe("2029");
+    expect(ranged?.searchParams.get("to")).toBe(String(NOW));
     expect(ranged?.searchParams.get("bbox")).toBe("-10,35,30,60");
     expect(screen.getByRole("spinbutton", { name: "From year" })).toHaveValue(49);
     expect(screen.getByRole("button", { name: "From era" })).toHaveTextContent("BC");
@@ -559,7 +574,7 @@ describe("App what happened here", () => {
     await timelineLoaded();
 
     await user.click(screen.getByRole("checkbox", { name: "Born" }));
-    fireEvent.change(screen.getByRole("slider", { name: "Covered in at least" }), { target: { value: "20" } });
+    await user.click(screen.getByRole("radio", { name: "Notable" }));
     fireEvent.keyDown(fromSlider(), { key: "ArrowRight" });
     await sleep(400);
 
@@ -567,9 +582,9 @@ describe("App what happened here", () => {
     await waitFor(() => expect(nearbyUrls.length).toBeGreaterThan(0));
     const q = nearbyUrls.at(-1)?.searchParams;
     expect(q?.get("kinds")).toBe("HAPPENED,DIED,FOUNDED,ENDED,OPENED");
-    expect(q?.get("minImportance")).toBe("20");
+    expect(q?.get("minImportance")).toBe("50");
     expect(q?.get("from")).toBe("-49");
-    expect(q?.get("to")).toBe("2029");
+    expect(q?.get("to")).toBe(String(NOW));
   });
 
   it("opens details from a list item with Back to list, keeping the place circle", async () => {

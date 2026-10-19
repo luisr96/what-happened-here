@@ -78,14 +78,9 @@ export function useNearby(query: NearbyQuery | null): UseQueryResult<EventsRespo
     queryFn: query === null
       ? skipToken
       : ({ signal }) => apiGet<EventsResponse>("/places/nearby", query, signal),
-    // While a resized search loads, the list for the same spot stays; a new spot starts empty,
-    // since another place's events would be misleading there.
-    placeholderData: (previous, previousQuery) => {
-      const before = previousQuery?.queryKey[1] as NearbyQuery | null | undefined;
-      return before != null && query !== null && before.lat === query.lat && before.lon === query.lon
-        ? previous
-        : undefined;
-    },
+    // While a moved or resized search loads, the list it replaces stays. A new click gets a new
+    // panel (App keys it per click), whose fresh query observer has no previous list to keep.
+    placeholderData: keepPreviousData,
   });
 }
 

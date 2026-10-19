@@ -38,11 +38,37 @@ describe("extentOf", () => {
       { decade: 2020, count: 4 },
       { decade: 0, count: 2 },
     ];
-    expect(extentOf(decades)).toEqual({ from: -7400, to: 2029 });
+    expect(extentOf(decades, 2029)).toEqual({ from: -7400, to: 2029 });
   });
 
   it("covers one decade alone", () => {
-    expect(extentOf([{ decade: -10, count: 5 }])).toEqual({ from: -10, to: -1 });
+    expect(extentOf([{ decade: -10, count: 5 }], 2026)).toEqual({ from: -10, to: -1 });
+  });
+
+  it("ends the current decade at the current year: the 2020s end in 2026 during 2026", () => {
+    const decades: DecadeCount[] = [{ decade: 1880, count: 3 }, { decade: 2020, count: 4 }];
+    expect(extentOf(decades, 2026)).toEqual({ from: 1880, to: 2026 });
+  });
+
+  it("moves the end with the current year: 2027 during 2027", () => {
+    const decades: DecadeCount[] = [{ decade: -50, count: 1 }, { decade: 2020, count: 4 }];
+    expect(extentOf(decades, 2027)).toEqual({ from: -50, to: 2027 });
+  });
+
+  it("ignores the current year when the data ends in an earlier decade (1880s)", () => {
+    const decades: DecadeCount[] = [{ decade: 1700, count: 1 }, { decade: 1880, count: 9 }];
+    expect(extentOf(decades, 2026)).toEqual({ from: 1700, to: 1889 });
+    expect(extentOf(decades, 2027)).toEqual({ from: 1700, to: 1889 });
+  });
+
+  it("still ends at the last decade's end if every decade starts after the current year", () => {
+    expect(extentOf([{ decade: 2030, count: 1 }, { decade: 2040, count: 1 }], 2026)).toEqual({ from: 2030, to: 2049 });
+  });
+
+  it("defaults the current year to today's", () => {
+    const now = new Date().getFullYear();
+    const lastDecade = Math.floor(now / 10) * 10;
+    expect(extentOf([{ decade: 1880, count: 1 }, { decade: lastDecade, count: 1 }])).toEqual({ from: 1880, to: now });
   });
 });
 

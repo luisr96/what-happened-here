@@ -107,23 +107,29 @@ describe("NearbyPanel search radius", () => {
 });
 
 describe("NearbyPanel resize review fixes", () => {
-  it("searches a new centre at once, even right after a resize", async () => {
+  it("treats a new centre on the same panel as a move: keeps the list, says Updating… and searches the final centre", async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
     const centres: string[] = [];
-    server.use(http.get("*/api/places/nearby", ({ request }) => {
+    server.use(http.get("*/api/places/nearby", async ({ request }) => {
       const url = new URL(request.url);
       centres.push(`${url.searchParams.get("lat")},${url.searchParams.get("lon")},${url.searchParams.get("radius")}`);
+      if (centres.length > 1) await gate;
       return HttpResponse.json({ events: [caesarDied], truncated: false });
     }));
     const props = { filters: {}, onSelect: vi.fn(), onClose: vi.fn(), onRadiusChange: vi.fn() };
     const { rerender } = render(<NearbyPanel place={rome} {...props} />, { wrapper: createQueryWrapper() });
     await screen.findByText("Julius Caesar");
 
-    rerender(<NearbyPanel place={{ ...rome, radius: 9000 }} {...props} />);
     const fiji: Place = { lat: -17.8, lon: 179.9, radius: 2293 };
     rerender(<NearbyPanel place={fiji} {...props} />);
 
+    expect(await screen.findByText("Updating…")).toBeInTheDocument();
+    expect(screen.getByText("Julius Caesar")).toBeInTheDocument();
+    expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
     await waitFor(() => expect(centres).toContain("-17.8,179.9,2293"));
-    expect(centres.filter((c) => c.startsWith("41.9,12.5,9000"))).toHaveLength(0);
+    release();
+    await waitFor(() => expect(screen.queryByText("Updating…")).not.toBeInTheDocument());
   });
 
   it("says Updating… while a resized search loads, keeping the previous list", async () => {

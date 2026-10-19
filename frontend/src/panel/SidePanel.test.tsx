@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Kind } from "../api/client";
@@ -23,22 +23,22 @@ function props(overrides: Partial<Props> = {}): Props {
 }
 
 function panel() {
-  return screen.getByRole("complementary", { name: "Filters and layers" });
+  return screen.getByRole("complementary", { name: "Filters" });
 }
 
 describe("SidePanel", () => {
-  it("is a landmark named \"Filters and layers\" with Filters and Layers sections", () => {
+  it("is a landmark named \"Filters\" with a Filters heading and no Layers section", () => {
     render(<SidePanel {...props()} />);
 
     expect(panel()).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Filters" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Layers" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Layers" })).not.toBeInTheDocument();
   });
 
   it("starts open with a toggle that controls an existing element", () => {
     render(<SidePanel {...props()} />);
 
-    const toggle = screen.getByRole("button", { name: "Filters and layers panel" });
+    const toggle = screen.getByRole("button", { name: "Filters panel" });
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     const controlledId = toggle.getAttribute("aria-controls");
     expect(controlledId).toBeTruthy();
@@ -51,24 +51,22 @@ describe("SidePanel", () => {
     const user = userEvent.setup();
     render(<SidePanel {...props()} />);
 
-    await user.click(screen.getByRole("button", { name: "Filters and layers panel" }));
+    await user.click(screen.getByRole("button", { name: "Filters panel" }));
 
-    const toggle = screen.getByRole("button", { name: "Filters and layers panel" });
+    const toggle = screen.getByRole("button", { name: "Filters panel" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("heading", { name: "Filters" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Layers" })).not.toBeInTheDocument();
   });
 
   it("shows the sections again when expanded", async () => {
     const user = userEvent.setup();
     render(<SidePanel {...props()} />);
 
-    await user.click(screen.getByRole("button", { name: "Filters and layers panel" }));
-    await user.click(screen.getByRole("button", { name: "Filters and layers panel" }));
+    await user.click(screen.getByRole("button", { name: "Filters panel" }));
+    await user.click(screen.getByRole("button", { name: "Filters panel" }));
 
-    expect(screen.getByRole("button", { name: "Filters and layers panel" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Filters panel" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("heading", { name: "Filters" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Layers" })).toBeInTheDocument();
   });
 
   it("toggles with Enter and Space from the keyboard", async () => {
@@ -76,14 +74,14 @@ describe("SidePanel", () => {
     render(<SidePanel {...props()} />);
 
     // Focused directly: the filters come before the button in tab order, as they do on screen.
-    screen.getByRole("button", { name: "Filters and layers panel" }).focus();
+    screen.getByRole("button", { name: "Filters panel" }).focus();
 
     await user.keyboard("{Enter}");
-    expect(screen.getByRole("button", { name: "Filters and layers panel" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: "Filters panel" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("heading", { name: "Filters" })).not.toBeInTheDocument();
 
     await user.keyboard(" ");
-    expect(screen.getByRole("button", { name: "Filters and layers panel" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Filters panel" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("heading", { name: "Filters" })).toBeInTheDocument();
   });
 });
@@ -91,9 +89,9 @@ describe("SidePanel", () => {
 describe("SidePanel filters", () => {
   const LABELS = ["Happened", "Born", "Died", "Founded", "Ended", "Opened"];
 
-  it("shows a Kinds group of six checkboxes in kind order", () => {
+  it("shows an Events group of six checkboxes in kind order", () => {
     render(<SidePanel {...props()} />);
-    const group = screen.getByRole("group", { name: "Kinds" });
+    const group = screen.getByRole("group", { name: "Events" });
     const boxes = within(group).getAllByRole("checkbox");
     expect(boxes).toHaveLength(6);
     for (const [i, label] of LABELS.entries()) {
@@ -144,50 +142,80 @@ describe("SidePanel filters", () => {
     expect(onKindsChange).toHaveBeenCalledWith(["HAPPENED", "BORN", "FOUNDED", "ENDED", "OPENED"]);
   });
 
-  it("has a \"Covered in at least\" slider from 0 to 100 with the current value", () => {
-    render(<SidePanel {...props({ minImportance: 20 })} />);
-    const slider = screen.getByRole("slider", { name: "Covered in at least" });
-    expect(slider).toHaveAttribute("min", "0");
-    expect(slider).toHaveAttribute("max", "100");
-    expect(slider).toHaveValue("20");
+  it("shows a radio group named Importance with All, Notable and Famous in that order", () => {
+    render(<SidePanel {...props()} />);
+    const group = screen.getByRole("radiogroup", { name: "Importance" });
+    const radios = within(group).getAllByRole("radio");
+    expect(radios).toHaveLength(3);
+    for (const [i, name] of ["All", "Notable", "Famous"].entries()) {
+      expect(within(group).getByRole("radio", { name })).toBe(radios[i]);
+    }
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+    expect(screen.queryByText("Covered in at least")).not.toBeInTheDocument();
   });
 
-  it("puts the importance slider under the Filters heading", () => {
+  it("puts the importance radios under the Filters heading", () => {
     render(<SidePanel {...props()} />);
     const filters = screen.getByRole("heading", { name: "Filters" }).closest("section");
     expect(filters).not.toBeNull();
-    expect(filters).toContainElement(screen.getByRole("slider", { name: "Covered in at least" }));
+    expect(filters).toContainElement(screen.getByRole("radiogroup", { name: "Importance" }));
   });
 
-  it("explains the importance label in a tooltip", () => {
+  it.each([
+    ["All", "Every event"],
+    ["Notable", "Covered by 50+ Wikipedia languages"],
+    ["Famous", "Covered by 100+ Wikipedia languages"],
+  ])("explains %s in a title tooltip on its label", (name, title) => {
     render(<SidePanel {...props()} />);
-    const label = screen.getByText("Covered in at least");
-    expect(label).toHaveAttribute("title", "Number of Wikipedia language editions with an article on it");
+    const radio = screen.getByRole("radio", { name });
+    const label = radio.closest("label") ?? document.querySelector(`label[for="${radio.id}"]`);
+    expect(label).not.toBeNull();
+    expect(label).toHaveAttribute("title", title);
   });
 
-  it("shows the minimum importance as a number of languages", () => {
-    render(<SidePanel {...props({ minImportance: 20 })} />);
-    expect(screen.getByText("20 languages")).toBeInTheDocument();
-    expect(screen.getByRole("slider", { name: "Covered in at least" })).toHaveAttribute("aria-valuetext", "20 languages");
-    expect(screen.queryByText(/Wikipedias/)).not.toBeInTheDocument();
+  it.each([
+    [0, "All"],
+    [49, "All"],
+    [50, "Notable"],
+    [99, "Notable"],
+    [100, "Famous"],
+    [500, "Famous"],
+  ])("checks exactly the bucket for minImportance %i (%s)", (minImportance, name) => {
+    render(<SidePanel {...props({ minImportance })} />);
+    for (const other of ["All", "Notable", "Famous"]) {
+      const radio = screen.getByRole("radio", { name: other });
+      if (other === name) expect(radio).toBeChecked();
+      else expect(radio).not.toBeChecked();
+    }
   });
 
-  it("uses the singular for 1 language", () => {
-    render(<SidePanel {...props({ minImportance: 1 })} />);
-    expect(screen.getByText("1 language")).toBeInTheDocument();
-    expect(screen.getByRole("slider", { name: "Covered in at least" })).toHaveAttribute("aria-valuetext", "1 language");
-  });
-
-  it("shows \"Any\" for a minimum importance of 0", () => {
-    render(<SidePanel {...props({ minImportance: 0 })} />);
-    expect(screen.getByText("Any")).toBeInTheDocument();
-    expect(screen.getByRole("slider", { name: "Covered in at least" })).toHaveAttribute("aria-valuetext", "Any");
-  });
-
-  it("reports a moved slider as a number", () => {
+  it.each([
+    ["Notable", 0, 50],
+    ["Famous", 0, 100],
+    ["All", 100, 0],
+  ])("choosing %s reports its threshold", async (name, start, expected) => {
+    const user = userEvent.setup();
     const onMinImportanceChange = vi.fn<(value: number) => void>();
-    render(<SidePanel {...props({ onMinImportanceChange })} />);
-    fireEvent.change(screen.getByRole("slider", { name: "Covered in at least" }), { target: { value: "35" } });
-    expect(onMinImportanceChange).toHaveBeenCalledWith(35);
+    render(<SidePanel {...props({ minImportance: start, onMinImportanceChange })} />);
+    await user.click(screen.getByRole("radio", { name }));
+    expect(onMinImportanceChange).toHaveBeenCalledTimes(1);
+    expect(onMinImportanceChange).toHaveBeenCalledWith(expected);
+  });
+
+  it("moves between importance radios with the arrow keys", async () => {
+    const user = userEvent.setup();
+    const onMinImportanceChange = vi.fn<(value: number) => void>();
+    render(<SidePanel {...props({ minImportance: 0, onMinImportanceChange })} />);
+    await user.click(screen.getByRole("radio", { name: "All" }));
+    onMinImportanceChange.mockClear();
+    await user.keyboard("{ArrowRight}");
+    expect(onMinImportanceChange).toHaveBeenLastCalledWith(50);
+  });
+
+  it("is controlled: the checked radio follows the minImportance prop", () => {
+    const { rerender } = render(<SidePanel {...props({ minImportance: 0 })} />);
+    rerender(<SidePanel {...props({ minImportance: 100 })} />);
+    expect(screen.getByRole("radio", { name: "Famous" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "All" })).not.toBeChecked();
   });
 });

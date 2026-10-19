@@ -1,8 +1,9 @@
-import { useId, useState, type CSSProperties } from "react";
+import { useId, useState } from "react";
 import type { Kind } from "../api/client";
 import { KINDS, kindLabel, kindStyle } from "../map/kinds";
 import type { Settings } from "../settings/settings";
 import { SettingsMenu } from "../settings/SettingsMenu";
+import { bucketFor, IMPORTANCE_BUCKETS } from "./importance";
 
 export type SidePanelProps = {
   readonly kinds: readonly Kind[];
@@ -14,23 +15,20 @@ export type SidePanelProps = {
   readonly onSettingsChange?: (next: Settings) => void;
 };
 
-export const MAX_MIN_IMPORTANCE = 100;
 
 export function SidePanel({
   kinds, onKindsChange, minImportance, onMinImportanceChange, settings, onSettingsChange,
 }: SidePanelProps) {
   const [open, setOpen] = useState(true);
   const contentId = useId();
-  const sliderId = useId();
-  const importanceText = minImportance === 0 ? "Any"
-    : `${minImportance} ${minImportance === 1 ? "language" : "languages"}`;
+  const importanceId = useId();
 
   // Rebuilt from KINDS rather than appended, so the list keeps API order whatever the click order.
   const toggleKind = (kind: Kind, checked: boolean) =>
     onKindsChange(KINDS.filter((k) => (k === kind ? checked : kinds.includes(k))));
 
   return (
-    <aside className="side-panel" aria-label="Filters and layers" data-open={open}>
+    <aside className="side-panel" aria-label="Filters" data-open={open}>
       <div id={contentId} className="side-panel__content panel" hidden={!open}>
         <section className="panel-section">
           <div className="panel-section__header">
@@ -40,7 +38,7 @@ export function SidePanel({
             )}
           </div>
           <fieldset className="kinds">
-            <legend className="field-label">Kinds</legend>
+            <legend className="field-label">Events</legend>
             {KINDS.map((kind) => (
               <label key={kind} className="kinds__option" style={kindStyle(kind)}>
                 <input
@@ -54,33 +52,22 @@ export function SidePanel({
               </label>
             ))}
           </fieldset>
-          <div className="importance">
-            <label
-              htmlFor={sliderId}
-              className="field-label"
-              title="Number of Wikipedia language editions with an article on it"
-            >
-              Covered in at least
-            </label>
-            {/* A span, not <output>: that is a live "status" region, which the truncation hint owns. */}
-            <span className="value-pill">{importanceText}</span>
-            <input
-              id={sliderId}
-              type="range"
-              className="range"
-              style={{ "--fill": String(minImportance / MAX_MIN_IMPORTANCE) } as CSSProperties}
-              min={0}
-              max={MAX_MIN_IMPORTANCE}
-              step={1}
-              value={minImportance}
-              aria-valuetext={importanceText}
-              onChange={(e) => onMinImportanceChange(Number(e.target.value))}
-            />
-          </div>
-        </section>
-        <section className="panel-section">
-          <div className="panel-section__header">
-            <h2>Layers</h2>
+          <div role="radiogroup" aria-labelledby={importanceId} className="importance">
+            <span id={importanceId} className="field-label">Importance</span>
+            <div className="segmented">
+              {IMPORTANCE_BUCKETS.map((bucket) => (
+                <label key={bucket.id} className="segmented__option" title={bucket.title}>
+                  <input
+                    type="radio"
+                    className="segmented__input"
+                    name={importanceId}
+                    checked={bucketFor(minImportance).id === bucket.id}
+                    onChange={() => onMinImportanceChange(bucket.minImportance)}
+                  />
+                  {bucket.label}
+                </label>
+              ))}
+            </div>
           </div>
         </section>
       </div>
@@ -89,7 +76,7 @@ export function SidePanel({
         className="side-panel__toggle"
         aria-expanded={open}
         aria-controls={contentId}
-        aria-label="Filters and layers panel"
+        aria-label="Filters panel"
         onClick={() => setOpen(!open)}
       >
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">

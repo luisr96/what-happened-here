@@ -28,10 +28,18 @@ export function decadeYears(decade: number): YearRange {
   return { from: decade === 0 ? 1 : decade, to: decade + 9 };
 }
 
-export function extentOf(decades: readonly DecadeCount[]): YearRange | null {
+/**
+ * The years the data covers. The newest decade is cut at `currentYear` (the 2020s end in 2026
+ * during 2026): nothing has happened later, and "2029" would read like a future date. This is
+ * the browser's clock, so it moves on by itself each new year.
+ */
+export function extentOf(decades: readonly DecadeCount[], currentYear = new Date().getFullYear()): YearRange | null {
   if (decades.length === 0) return null;
   const starts = decades.map((d) => d.decade);
-  return { from: decadeYears(Math.min(...starts)).from, to: decadeYears(Math.max(...starts)).to };
+  const from = decadeYears(Math.min(...starts)).from;
+  const last = decadeYears(Math.max(...starts)).to;
+  // Only cut when the current year lies inside the data; future-dated data shouldn't exist.
+  return { from, to: currentYear >= from && currentYear < last ? currentYear : last };
 }
 
 /**

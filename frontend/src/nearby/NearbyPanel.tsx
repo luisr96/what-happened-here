@@ -40,13 +40,13 @@ const fromSlider = (position: number) =>
 export function NearbyPanel({
   place, filters, focusId, onSelect, onClose, returnFocusTo, onRadiusChange, units = "km",
 }: NearbyPanelProps) {
-  // Throttled so a dragged radius updates the list as it goes, at most every 250 ms. Only the
-  // radius waits: a new centre is searched at once, never shown with the old spot's list.
-  const throttled = useThrottledValue(place, SEARCH_THROTTLE_MS);
-  const searched = throttled.lat === place.lat && throttled.lon === place.lon ? throttled : place;
+  // Throttled so a moved or resized area updates the list as it goes, at most every 250 ms. A new
+  // click mounts a new panel (App keys it per click), so a fresh spot is searched at once.
+  const searched = useThrottledValue(place, SEARCH_THROTTLE_MS);
   const nearby = useNearby(filters === null ? null : { ...searched, ...filters });
-  // Keyed by the centre only: resizing the search area keeps focus where it is (e.g. the slider).
-  const panel = usePanelFocus<HTMLElement>(`${place.lat},${place.lon}`, returnFocusTo);
+  // Focus is taken once, on open: moving or resizing the area leaves it where it is (e.g. the
+  // slider). A constant key works because App remounts this panel (its `key`) for each new click.
+  const panel = usePanelFocus<HTMLElement>("nearby", returnFocusTo);
   const items = useRef(new Map<string, HTMLButtonElement>());
 
   // Back from an event's details lands on that event again, not at the top of a long list.

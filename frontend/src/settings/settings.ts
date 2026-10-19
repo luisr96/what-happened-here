@@ -6,7 +6,7 @@ export type MapStyleId = "dark" | "positron" | "liberty" | "bright" | "fiord";
 /** Per-viewer preferences, kept in this browser between visits. */
 export type Settings = { readonly units: DistanceUnits; readonly mapStyle: MapStyleId };
 
-export const DEFAULT_SETTINGS: Settings = { units: "km", mapStyle: "dark" };
+export const DEFAULT_SETTINGS: Settings = { units: "km", mapStyle: "liberty" };
 
 /** OpenFreeMap's styles (no token needed), in the order the settings list them. */
 export const MAP_STYLES: readonly { readonly id: MapStyleId; readonly label: string }[] = [

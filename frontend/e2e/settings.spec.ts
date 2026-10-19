@@ -5,7 +5,7 @@ import { caesarDied, mozartBorn } from "../src/test/apiFixtures";
 
 type EventsResponse = components["schemas"]["EventsResponse"];
 
-const STYLES = ["dark", "positron"].map((id) => `https://tiles.openfreemap.org/styles/${id}`);
+const STYLES = ["liberty", "positron"].map((id) => `https://tiles.openfreemap.org/styles/${id}`);
 const minimalStyle = {
   version: 8,
   sources: {},

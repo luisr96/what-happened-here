@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
+const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const TILEJSON_URL = "https://tiles.openfreemap.org/planet";
 
 // Like the real style: the credit comes from the source's TileJSON, not from the app.
@@ -59,10 +59,10 @@ test("credits OpenFreeMap and OpenStreetMap", async ({ page }) => {
 });
 
 test("collapses and expands the side panel", async ({ page }) => {
-  const panel = page.getByRole("complementary", { name: "Filters and layers" });
+  const panel = page.getByRole("complementary", { name: "Filters" });
   await expect(panel.getByRole("heading", { name: "Filters" })).toBeVisible();
 
-  const toggle = panel.getByRole("button", { name: "Filters and layers panel" });
+  const toggle = panel.getByRole("button", { name: "Filters panel" });
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await toggle.click();
   await expect(panel.getByRole("heading", { name: "Filters" })).toBeHidden();
@@ -71,7 +71,6 @@ test("collapses and expands the side panel", async ({ page }) => {
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(panel.getByRole("heading", { name: "Filters" })).toBeVisible();
-  await expect(panel.getByRole("heading", { name: "Layers" })).toBeVisible();
 });
 
 test("shows the timeline along the bottom", async ({ page }) => {

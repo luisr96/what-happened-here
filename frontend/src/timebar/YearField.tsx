@@ -1,5 +1,8 @@
 import { useState } from "react";
 
+const MAX_DIGITS = 4;
+const MAX_YEAR = 9999;
+
 export type YearFieldProps = {
   /** "From" or "To": names the box ("From year") and its era toggle ("From era"). */
   readonly label: string;
@@ -41,13 +44,15 @@ export function YearField({ label, year, onCommit }: YearFieldProps) {
         type="number"
         className="year-field__input"
         min={1}
+        max={MAX_YEAR}
         step={1}
         aria-label={`${label} year`}
         aria-invalid={invalid}
         disabled={year === null}
         value={draft ?? (year === null ? "" : String(Math.abs(year)))}
         onChange={(e) => {
-          setDraft(e.target.value);
+          // At most four digits: a fifth is dropped, so the box just doesn't take it.
+          setDraft(e.target.value.slice(0, MAX_DIGITS));
           setInvalid(false);
         }}
         onKeyDown={(e) => {

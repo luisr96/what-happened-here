@@ -19,7 +19,7 @@ describe("SidePanel settings", () => {
         onSettingsChange={onSettingsChange}
       />,
     );
-    const panel = screen.getByRole("complementary", { name: "Filters and layers" });
+    const panel = screen.getByRole("complementary", { name: "Filters" });
 
     await user.click(within(panel).getByRole("button", { name: "Settings" }));
     await user.click(screen.getByRole("radio", { name: "mi" }));

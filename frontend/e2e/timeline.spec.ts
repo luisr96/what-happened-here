@@ -6,7 +6,7 @@ import { caesarDied, lisbonEarthquake } from "../src/test/apiFixtures";
 type TimelineResponse = components["schemas"]["TimelineResponse"];
 type EventsResponse = components["schemas"]["EventsResponse"];
 
-const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
+const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const minimalStyle = {
   version: 8,
   sources: {},
@@ -117,4 +117,30 @@ test("zoom buttons are icon buttons found by name, without a Play button", async
   await expect(reset).toBeEnabled();
   await reset.click();
   await expect(from).toHaveAttribute("aria-valuemin", "-50");
+});
+
+test("a timeline reaching the 2020s ends at the current year, not 2029", async ({ page }) => {
+  await setup(page);
+  const recent: TimelineResponse = { decades: [{ decade: 1880, count: 919 }, { decade: 2020, count: 4 }] };
+  await page.route("**/api/stats/timeline?**", (route) =>
+    route.fulfill({ contentType: "application/json", body: JSON.stringify(recent) }),
+  );
+  await page.goto("/");
+
+  const now = String(new Date().getFullYear());
+  await expect(page.getByRole("slider", { name: "To" })).toHaveAttribute("aria-valuemax", now);
+  await expect(page.getByRole("spinbutton", { name: "To year" })).toHaveValue(now);
+});
+
+test("a year box keeps at most 4 digits", async ({ page }) => {
+  await setup(page);
+  await page.goto("/");
+  const toYear = page.getByRole("spinbutton", { name: "To year" });
+  await expect(toYear).toHaveValue("1889");
+
+  await toYear.fill("");
+  await toYear.pressSequentially("12345");
+
+  await expect(toYear).toHaveValue("1234");
+  await expect(toYear).not.toHaveAttribute("aria-invalid", "true");
 });
