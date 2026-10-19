@@ -105,8 +105,9 @@ export function placeLayer(place: Place | null): Layer {
     lineWidthUnits: "pixels",
     getPosition: (p) => [p.lon, p.lat],
     getRadius: (p) => p.radius,
-    getFillColor: [255, 255, 255, 18],
-    getLineColor: [255, 255, 255, 110],
-    getLineWidth: 1,
+    // The accent blue rather than white, so the area shows on light map styles too.
+    getFillColor: [94, 163, 255, 30],
+    getLineColor: [94, 163, 255, 220],
+    getLineWidth: 1.5,
   });
 }

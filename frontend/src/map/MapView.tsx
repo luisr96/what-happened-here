@@ -7,10 +7,10 @@ import type { Bbox } from "../api/client";
 import type { EventView } from "../api/hooks";
 import { viewportToBbox } from "./bbox";
 import { placeLayer, pointLayers, selectionLayer } from "./eventLayers";
-import { clampRadius, clickRadiusMetres, distanceMetres, edgePoint, type Place } from "./nearby";
+import {
+  clampRadius, clickRadiusMetres, distanceMetres, edgePoint, MIN_SEARCH_RADIUS_M, type Place,
+} from "./nearby";
 import { tooltipText } from "./tooltip";
-
-const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
 
 /**
  * deck.gl on its own canvas above the map (overlaid), so points cover map labels. Interleaved
@@ -39,11 +39,15 @@ export type MapViewProps = {
   readonly place: Place | null;
   /** When given, the area gets a handle on its east edge; dragging it reports a new radius. */
   readonly onPlaceRadiusChange?: (radius: number) => void;
+  /** The basemap style (an OpenFreeMap style URL). */
+  readonly mapStyleUrl: string;
   /** The map region, focusable from script (e.g. when the details panel closes). */
   readonly ref?: Ref<HTMLElement>;
 };
 
 // deck.gl styles its tooltip inline; these override its defaults to match the side panel.
+const MAX_HANDLE_LAT = 85;
+
 const TOOLTIP_STYLE = {
   whiteSpace: "pre-line",
   padding: "6px 8px",
@@ -67,7 +71,7 @@ function tooltip({ object }: PickingInfo<EventView>) {
 }
 
 export function MapView({
-  events, onViewportChange, selectedId, selectedEvent, onSelect, onPlaceClick, place, onPlaceRadiusChange, ref,
+  events, onViewportChange, selectedId, selectedEvent, onSelect, onPlaceClick, place, onPlaceRadiusChange, mapStyleUrl, ref,
 }: MapViewProps) {
   // Busy until MapLibre's load event, which fires once the style has loaded.
   const [loaded, setLoaded] = useState(false);
@@ -77,7 +81,9 @@ export function MapView({
   const selected = selectedEvent ?? (selectedId === null ? null : events.find((e) => e.id === selectedId) ?? null);
   const ring = useMemo(() => selectionLayer(selected), [selected]);
   const area = useMemo(() => placeLayer(place), [place]);
-  const edge = place === null ? null : edgePoint(place);
+  // No handle near the poles, where a point due east along the parallel stops making sense;
+  // the panel's slider still resizes there.
+  const edge = place === null || Math.abs(place.lat) > MAX_HANDLE_LAT ? null : edgePoint(place);
   // The searched area lies under the points so they stay hoverable and clickable inside it.
   const layers = useMemo(() => [area, ...points, ring], [area, points, ring]);
 
@@ -101,7 +107,7 @@ export function MapView({
         }}
         onMoveEnd={(e) => report(e.target)}
         initialViewState={{ longitude: 10, latitude: 30, zoom: 2 }}
-        mapStyle={STYLE_URL}
+        mapStyle={mapStyleUrl}
         // OpenFreeMap and OpenStreetMap are credited by the style's source (its TileJSON).
         attributionControl={{ compact: false }}
         // MapLibre labels its canvas "Map" too; a distinct name keeps the landmark unique.
@@ -114,9 +120,13 @@ export function MapView({
             longitude={edge.lon}
             latitude={edge.lat}
             draggable
-            onDrag={(e) => onPlaceRadiusChange(clampRadius(distanceMetres(place, { lat: e.lngLat.lat, lon: e.lngLat.lng })))}
+            onDrag={(e) => {
+              const metres = distanceMetres(place, { lat: e.lngLat.lat, lon: e.lngLat.lng });
+              onPlaceRadiusChange(clampRadius(Math.max(MIN_SEARCH_RADIUS_M, metres)));
+            }}
           >
-            <div className="area-handle" title="Drag to resize the search area" aria-label="Drag to resize the search area" />
+            {/* Pointer only; keyboard and screen-reader users resize with the panel's slider. */}
+            <div className="area-handle" title="Drag to resize the search area" aria-hidden="true" />
           </Marker>
         )}
         <DeckOverlay
@@ -130,7 +140,8 @@ export function MapView({
               if (lon === undefined || lat === undefined) return;
               // Past the antimeridian the map reports longitudes beyond ±180; the API wants -180..180.
               const wrapped = ((((lon + 180) % 360) + 360) % 360) - 180;
-              onPlaceClick({ lat, lon: wrapped, radius: clickRadiusMetres(lat, viewport.zoom) });
+              const radius = Math.max(MIN_SEARCH_RADIUS_M, clickRadiusMetres(lat, viewport.zoom));
+              onPlaceClick({ lat, lon: wrapped, radius });
             }
           }}
         />

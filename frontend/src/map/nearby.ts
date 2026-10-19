@@ -35,13 +35,26 @@ export function edgePoint(place: Place): LatLon {
   return { lat: place.lat, lon: ((((lon + 180) % 360) + 360) % 360) - 180 };
 }
 
+/** The smallest area "what happened here" searches, for a click and the handle and slider alike. */
+export const MIN_SEARCH_RADIUS_M = 100;
+
 /** A radius the API accepts: whole metres within 1..500000. */
 export function clampRadius(metres: number): number {
   return Math.min(MAX_RADIUS_M, Math.max(1, Math.round(metres)));
 }
 
-/** "800 m", "2.3 km", "12 km". */
-export function formatDistance(metres: number): string {
+export type DistanceUnits = "km" | "mi";
+
+const METRES_PER_MILE = 1609.344;
+const METRES_PER_FOOT = 0.3048;
+
+/** "800 m", "2.3 km", "12 km"; in miles "520 ft" (below 0.1 mi), "2.3 mi", "12 mi". */
+export function formatDistance(metres: number, units: DistanceUnits = "km"): string {
+  if (units === "mi") {
+    const miles = metres / METRES_PER_MILE;
+    if (miles < 0.1) return `${Math.round(metres / METRES_PER_FOOT / 10) * 10} ft`;
+    return miles >= 10 ? `${Math.round(miles)} mi` : `${miles.toFixed(1)} mi`;
+  }
   if (metres < 1000) return `${Math.round(metres)} m`;
   const km = metres / 1000;
   return km >= 10 ? `${Math.round(km)} km` : `${km.toFixed(1)} km`;

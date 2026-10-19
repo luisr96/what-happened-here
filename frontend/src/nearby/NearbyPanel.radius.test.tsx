@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 import { caesarDied } from "../test/apiFixtures";
@@ -103,5 +103,47 @@ describe("NearbyPanel search radius", () => {
     );
     expect(screen.getByText("Within 50 km")).toBeInTheDocument();
     expect(slider()).toHaveAttribute("aria-valuetext", "50 km");
+  });
+});
+
+describe("NearbyPanel resize review fixes", () => {
+  it("searches a new centre at once, even right after a resize", async () => {
+    const centres: string[] = [];
+    server.use(http.get("*/api/places/nearby", ({ request }) => {
+      const url = new URL(request.url);
+      centres.push(`${url.searchParams.get("lat")},${url.searchParams.get("lon")},${url.searchParams.get("radius")}`);
+      return HttpResponse.json({ events: [caesarDied], truncated: false });
+    }));
+    const props = { filters: {}, onSelect: vi.fn(), onClose: vi.fn(), onRadiusChange: vi.fn() };
+    const { rerender } = render(<NearbyPanel place={rome} {...props} />, { wrapper: createQueryWrapper() });
+    await screen.findByText("Julius Caesar");
+
+    rerender(<NearbyPanel place={{ ...rome, radius: 9000 }} {...props} />);
+    const fiji: Place = { lat: -17.8, lon: 179.9, radius: 2293 };
+    rerender(<NearbyPanel place={fiji} {...props} />);
+
+    await waitFor(() => expect(centres).toContain("-17.8,179.9,2293"));
+    expect(centres.filter((c) => c.startsWith("41.9,12.5,9000"))).toHaveLength(0);
+  });
+
+  it("says Updating… while a resized search loads, keeping the previous list", async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    let calls = 0;
+    server.use(http.get("*/api/places/nearby", async () => {
+      calls++;
+      if (calls > 1) await gate;
+      return HttpResponse.json({ events: [caesarDied], truncated: false });
+    }));
+    const props = { filters: {}, onSelect: vi.fn(), onClose: vi.fn(), onRadiusChange: vi.fn() };
+    const { rerender } = render(<NearbyPanel place={rome} {...props} />, { wrapper: createQueryWrapper() });
+    await screen.findByText("Julius Caesar");
+
+    rerender(<NearbyPanel place={{ ...rome, radius: 9000 }} {...props} />);
+
+    expect(await screen.findByText("Updating…")).toBeInTheDocument();
+    expect(screen.getByText("Julius Caesar")).toBeInTheDocument();
+    release();
+    await waitFor(() => expect(screen.queryByText("Updating…")).not.toBeInTheDocument());
   });
 });

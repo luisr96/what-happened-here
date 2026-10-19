@@ -8,6 +8,7 @@ import { KINDS } from "./map/kinds";
 import type { Place } from "./map/nearby";
 import { NearbyPanel, type NearbyFilters } from "./nearby/NearbyPanel";
 import { SidePanel } from "./panel/SidePanel";
+import { styleUrl, useSettings } from "./settings/settings";
 import { TimeBar } from "./timebar/TimeBar";
 import type { YearRange } from "./timebar/timeScale";
 import { useDebouncedValue } from "./util/useDebouncedValue";
@@ -33,6 +34,7 @@ export function App() {
   const [minImportance, setMinImportance] = useState(0);
   const [range, setRange] = useState<YearRange | null>(null);
   const [panel, setPanel] = useState<RightPanel>(null);
+  const [settings, setSettings] = useSettings();
   const mapRef = useRef<HTMLElement>(null);
 
   const requestedMinImportance = useDebouncedValue(minImportance, SLIDER_SETTLE_MS);
@@ -73,6 +75,7 @@ export function App() {
         onPlaceClick={(clicked) => setPanel({ kind: "nearby", place: clicked })}
         place={place}
         {...(panel?.kind === "nearby" && { onPlaceRadiusChange: resize })}
+        mapStyleUrl={styleUrl(settings.mapStyle)}
       />
       <MapNotices
         noKinds={noKinds}
@@ -84,6 +87,8 @@ export function App() {
         onKindsChange={setKinds}
         minImportance={minImportance}
         onMinImportanceChange={setMinImportance}
+        settings={settings}
+        onSettingsChange={setSettings}
       />
       {panel?.kind === "details" && (
         <DetailsPanel
@@ -102,6 +107,7 @@ export function App() {
           onClose={close}
           returnFocusTo={mapRef}
           onRadiusChange={resize}
+          units={settings.units}
         />
       )}
       <TimeBar decades={timeline.data?.decades ?? []} range={range} onRangeChange={setRange} />

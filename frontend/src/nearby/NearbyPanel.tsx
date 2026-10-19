@@ -2,7 +2,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import { useNearby, type NearbyQuery } from "../api/hooks";
 import { formatRange } from "../format/historicDate";
 import { kindLabel } from "../map/kinds";
-import { clampRadius, formatDistance, type Place } from "../map/nearby";
+import { clampRadius, formatDistance, MIN_SEARCH_RADIUS_M, type DistanceUnits, type Place } from "../map/nearby";
 import { usePanelFocus } from "../util/usePanelFocus";
 import { useThrottledValue } from "../util/useThrottledValue";
 
@@ -20,11 +20,13 @@ export type NearbyPanelProps = {
   readonly returnFocusTo?: RefObject<HTMLElement | null>;
   /** When given, a "Search radius" slider reports a new radius in metres for the same centre. */
   readonly onRadiusChange?: (metres: number) => void;
+  /** How distances read; kilometres unless the settings say miles. */
+  readonly units?: DistanceUnits;
 };
 
 // The slider is logarithmic: each step scales the radius by the same factor, so it is as fine
 // at 200 m as at 200 km. Positions run 0..SLIDER_STEPS between these radii.
-const SLIDER_MIN_M = 100;
+const SLIDER_MIN_M = MIN_SEARCH_RADIUS_M;
 const SLIDER_MAX_M = 500000;
 const SLIDER_STEPS = 1000;
 const SEARCH_THROTTLE_MS = 250;
@@ -36,10 +38,12 @@ const fromSlider = (position: number) =>
 
 /** "What happened here": events around a clicked spot, most important first. Fetches its own list. */
 export function NearbyPanel({
-  place, filters, focusId, onSelect, onClose, returnFocusTo, onRadiusChange,
+  place, filters, focusId, onSelect, onClose, returnFocusTo, onRadiusChange, units = "km",
 }: NearbyPanelProps) {
-  // Throttled so a dragged radius updates the list as it goes, at most every 250 ms.
-  const searched = useThrottledValue(place, SEARCH_THROTTLE_MS);
+  // Throttled so a dragged radius updates the list as it goes, at most every 250 ms. Only the
+  // radius waits: a new centre is searched at once, never shown with the old spot's list.
+  const throttled = useThrottledValue(place, SEARCH_THROTTLE_MS);
+  const searched = throttled.lat === place.lat && throttled.lon === place.lon ? throttled : place;
   const nearby = useNearby(filters === null ? null : { ...searched, ...filters });
   // Keyed by the centre only: resizing the search area keeps focus where it is (e.g. the slider).
   const panel = usePanelFocus<HTMLElement>(`${place.lat},${place.lon}`, returnFocusTo);
@@ -65,7 +69,7 @@ export function NearbyPanel({
         ×
       </button>
       <h2>What happened here</h2>
-      <p className="details-panel__note">Within {formatDistance(place.radius)}</p>
+      <p className="details-panel__note">Within {formatDistance(place.radius, units)}</p>
       {onRadiusChange !== undefined && (
         <input
           type="range"
@@ -75,12 +79,13 @@ export function NearbyPanel({
           max={SLIDER_STEPS}
           step={1}
           value={toSlider(place.radius)}
-          aria-valuetext={formatDistance(place.radius)}
+          aria-valuetext={formatDistance(place.radius, units)}
           onChange={(e) => onRadiusChange(fromSlider(Number(e.target.value)))}
         />
       )}
       {filters === null && <p>Select at least one kind</p>}
       {filters !== null && nearby.isPending && <p role="status">Loading…</p>}
+      {nearby.isPlaceholderData && <p role="status" className="details-panel__note">Updating…</p>}
       {nearby.isError && <p role="alert" className="details-panel__error">{nearby.error.message}</p>}
       {nearby.isSuccess && nearby.data.events.length === 0 && <p>Nothing recorded here.</p>}
       {nearby.isSuccess && nearby.data.events.length > 0 && (
