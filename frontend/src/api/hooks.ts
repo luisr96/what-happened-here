@@ -47,12 +47,17 @@ export function useEvents(query: EventsQuery | null): UseQueryResult<EventsRespo
   });
 }
 
-/** Per-decade counts for the time bar; keeps the previous counts while new ones load. */
-export function useTimeline(bbox: Bbox): UseQueryResult<TimelineResponse, ApiError> {
-  const params = { bbox: bboxParam(bbox) };
+/**
+ * Per-decade counts for the time bar; keeps the previous counts while new ones load. Idle (no
+ * request) while `bbox` is null.
+ */
+export function useTimeline(bbox: Bbox | null): UseQueryResult<TimelineResponse, ApiError> {
+  const params = bbox === null ? null : { bbox: bboxParam(bbox) };
   return useQuery({
     queryKey: ["timeline", params],
-    queryFn: ({ signal }) => apiGet<TimelineResponse>("/stats/timeline", params, signal),
+    queryFn: params === null
+      ? skipToken
+      : ({ signal }) => apiGet<TimelineResponse>("/stats/timeline", params, signal),
     placeholderData: keepPreviousData,
   });
 }

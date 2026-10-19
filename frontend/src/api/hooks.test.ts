@@ -292,6 +292,21 @@ describe("useEvents", () => {
 });
 
 describe("useTimeline", () => {
+  it("stays idle and sends no request while the bbox is null", async () => {
+    const rec = recorder();
+    server.use(
+      http.get("*/api/stats/timeline", ({ request }) => {
+        rec.record(request);
+        return HttpResponse.json(timeline);
+      }),
+    );
+    const { result } = renderHook(() => useTimeline(null), { wrapper: createQueryWrapper() });
+    await sleep(50);
+    expect(rec.requests).toHaveLength(0);
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(result.current.data).toBeUndefined();
+  });
+
   it("loads decade counts for the bbox", async () => {
     const rec = recorder();
     server.use(

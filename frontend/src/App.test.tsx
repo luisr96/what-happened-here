@@ -4,7 +4,7 @@ import { delay, http, HttpResponse } from "msw";
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Bbox } from "./api/client";
-import type { EventView } from "./api/hooks";
+import type { EventView, TimelineResponse } from "./api/hooks";
 import { App } from "./App";
 import {
   badBboxProblem,
@@ -183,10 +183,10 @@ describe("App events on the map", () => {
     reportViewport(europe);
     await waitFor(() => expect(urls).toHaveLength(1));
 
-    fireEvent.change(screen.getByRole("slider", { name: "Minimum importance" }), { target: { value: "20" } });
+    fireEvent.change(screen.getByRole("slider", { name: "Covered in at least" }), { target: { value: "20" } });
 
     await waitFor(() => expect(urls.some((u) => u.searchParams.get("minImportance") === "20")).toBe(true));
-    expect(screen.getByText("20 Wikipedias")).toBeInTheDocument();
+    expect(screen.getByText("20 languages")).toBeInTheDocument();
   });
 
   it("refetches when the viewport changes", async () => {
@@ -244,5 +244,128 @@ describe("App events on the map", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("bbox must be minLon,minLat,maxLon,maxLat");
+  });
+});
+
+function recordTimeline(body: TimelineResponse = appTimeline) {
+  const urls: URL[] = [];
+  server.use(http.get("*/api/stats/timeline", ({ request }) => {
+    urls.push(new URL(request.url));
+    return HttpResponse.json(body);
+  }));
+  return urls;
+}
+
+/** Extent 50 BC..2029. */
+const appTimeline: TimelineResponse = {
+  decades: [
+    { decade: -50, count: 3 },
+    { decade: 1880, count: 919 },
+    { decade: 2020, count: 4 },
+  ],
+};
+
+const fromSlider = () => screen.getByRole("slider", { name: "From" });
+
+async function timelineLoaded() {
+  await waitFor(() => expect(fromSlider()).toHaveAttribute("aria-valuemin", "-50"));
+}
+
+describe("App timeline", () => {
+  it("requests no timeline before the map reports a viewport", async () => {
+    const timelineUrls = recordTimeline();
+    recordEvents();
+    renderApp();
+    await sleep(50);
+    expect(timelineUrls).toHaveLength(0);
+  });
+
+  it("requests the timeline for the viewport, antimeridian bbox as given, and draws its decades", async () => {
+    const timelineUrls = recordTimeline();
+    recordEvents();
+    renderApp();
+    reportViewport(pacific);
+
+    await waitFor(() => expect(timelineUrls).toHaveLength(1));
+    expect(timelineUrls[0]?.searchParams.get("bbox")).toBe("170,-10,-170,10");
+    const histogram = screen.getByRole("img", { name: "Events per decade" });
+    expect(await within(histogram).findByTitle("1880 – 1889: 919 events")).toBeInTheDocument();
+    expect(within(histogram).getByTitle("50 BC – 41 BC: 3 events")).toBeInTheDocument();
+  });
+
+  it("sends neither from nor to while no time range is selected", async () => {
+    recordTimeline();
+    const urls = recordEvents();
+    renderApp();
+    reportViewport(europe);
+
+    await waitFor(() => expect(urls).toHaveLength(1));
+    expect(urls[0]?.searchParams.has("from")).toBe(false);
+    expect(urls[0]?.searchParams.has("to")).toBe(false);
+  });
+
+  it("requests the first range change immediately, then drops from and to for \"All time\"", async () => {
+    recordTimeline();
+    const urls = recordEvents();
+    renderApp();
+    reportViewport(europe);
+    await timelineLoaded();
+    await waitFor(() => expect(urls).toHaveLength(1));
+
+    fireEvent.keyDown(fromSlider(), { key: "ArrowRight" });
+
+    await waitFor(() => expect(urls.some((u) => u.searchParams.get("from") === "-49")).toBe(true), { timeout: 150 });
+    const ranged = urls.find((u) => u.searchParams.get("from") === "-49");
+    expect(ranged?.searchParams.get("to")).toBe("2029");
+    expect(ranged?.searchParams.get("bbox")).toBe("-10,35,30,60");
+    expect(screen.getByRole("spinbutton", { name: "From year" })).toHaveValue(49);
+    expect(screen.getByRole("button", { name: "From era" })).toHaveTextContent("BC");
+
+    await sleep(300);
+    const before = urls.length;
+    fireEvent.click(screen.getByRole("button", { name: "All time" }));
+
+    await waitFor(() => expect(urls.length).toBeGreaterThan(before));
+    await sleep(300);
+    const last = urls.at(-1);
+    expect(last?.searchParams.has("from")).toBe(false);
+    expect(last?.searchParams.has("to")).toBe(false);
+  });
+
+  it("throttles a dragged range: the first and last ranges are requested, not every step", async () => {
+    recordTimeline();
+    const urls = recordEvents();
+    renderApp();
+    reportViewport(europe);
+    await timelineLoaded();
+    await waitFor(() => expect(urls).toHaveLength(1));
+
+    for (let i = 0; i < 20; i++) {
+      fireEvent.keyDown(fromSlider(), { key: "ArrowRight" });
+      await sleep(20);
+    }
+
+    await waitFor(() => expect(urls.some((u) => u.searchParams.get("from") === "-30")).toBe(true));
+    await sleep(400);
+    const froms = urls.map((u) => u.searchParams.get("from")).filter((f) => f !== null);
+    expect(froms[0]).toBe("-49");
+    expect(froms.at(-1)).toBe("-30");
+    expect(froms.length).toBeLessThan(10);
+  });
+
+  it("sends a year typed into From year with its era", async () => {
+    const user = userEvent.setup();
+    recordTimeline();
+    const urls = recordEvents();
+    renderApp();
+    reportViewport(europe);
+    await timelineLoaded();
+    await waitFor(() => expect(urls).toHaveLength(1));
+
+    const input = screen.getByRole("spinbutton", { name: "From year" });
+    await user.clear(input);
+    await user.type(input, "44{Enter}");
+
+    await waitFor(() => expect(urls.some((u) => u.searchParams.get("from") === "-44")).toBe(true));
   });
 });

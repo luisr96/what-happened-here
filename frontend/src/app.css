@@ -6,7 +6,7 @@
   --text-muted: #8b8f99;
   --accent: #5ea3ff;
   --panel-width: 280px;
-  --time-bar-height: 112px;
+  --time-bar-height: 132px;
 
   color-scheme: dark;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -94,9 +94,167 @@ body,
   right: 12px;
   bottom: 12px;
   height: var(--time-bar-height);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 6px;
+}
+
+.time-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-bar__controls button {
+  padding: 3px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.time-bar__controls button:disabled {
+  color: var(--text-muted);
+  cursor: default;
+  opacity: 0.5;
+}
+
+.time-bar__spacer {
+  flex: 1;
+}
+
+/* The two range inputs lie on top of the histogram; only their thumbs take the pointer, so
+   together they act as one two-handled slider. */
+.time-bar__chart {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 16px;
+}
+
+.histogram {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.histogram__bar {
+  fill: #3a4a63;
+}
+
+.histogram__bar--selected {
+  fill: var(--accent);
+}
+
+.time-bar__ticks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.time-bar__ticks span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Handles and band lie over the histogram (not the tick labels below it). */
+.range-track {
+  position: absolute;
+  inset: 0 0 16px;
+}
+
+.range-track__band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgb(94 163 255 / 10%);
+  cursor: grab;
+  touch-action: none;
+}
+
+.range-track__band:active {
+  cursor: grabbing;
+}
+
+.range-track__handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  margin-left: -3px;
+  border-radius: 2px;
+  background: var(--text);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.range-track__handle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.year-field {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.year-field input {
+  width: 6ch;
+  padding: 2px 6px;
+  border: 1px solid var(--panel-border);
+  border-right: 0;
+  border-radius: 4px 0 0 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+
+.year-field input::-webkit-inner-spin-button,
+.year-field input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.year-field input[aria-invalid="true"] {
+  border-color: #b5414c;
+  outline-color: #b5414c;
+}
+
+.time-bar__controls .year-field__era {
+  min-width: 4ch;
+  padding: 2px 6px;
+  border-radius: 0 4px 4px 0;
+  color: var(--text-muted);
+}
+
+.time-bar__controls .icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Keep MapLibre's controls readable on the dark style. */
