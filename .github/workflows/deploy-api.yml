@@ -1,0 +1,49 @@
+# Tests the API (Testcontainers needs the runner's Docker) and deploys it to Fly.io.
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    # Everything api/Dockerfile copies, plus this file.
+    paths:
+      - "api/**"
+      - "extractor/**"
+      - "sampler/build.gradle.kts"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle/**"
+      - "gradlew"
+      - "fly.toml"
+      - ".dockerignore"
+      - ".github/workflows/deploy-api.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew :extractor:test :api:test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Pinned to a commit (release 1.5): this job holds the Fly deploy token.
+      - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

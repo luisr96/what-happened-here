@@ -1,0 +1,11 @@
+# Only what api/Dockerfile copies matters; keep the build context small.
+**/build/
+**/node_modules/
+.gradle/
+.idea/
+.git/
+frontend/
+docs/
+scripts/
+.github/
+*.md
