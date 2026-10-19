@@ -520,3 +520,35 @@ describe("useEvent", () => {
     expect(result.current.data).toEqual(other);
   });
 });
+
+describe("useEvents with a null query", () => {
+  it("stays idle and sends no request while the query is null", async () => {
+    const rec = recorder();
+    server.use(http.get("*/api/events", ({ request }) => {
+      rec.record(request);
+      return HttpResponse.json(eventsPage);
+    }));
+    const { result } = renderHook(() => useEvents(null), { wrapper: createQueryWrapper() });
+    await sleep(50);
+    expect(rec.requests).toHaveLength(0);
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(result.current.data).toBeUndefined();
+  });
+
+  it("fetches once a query is given", async () => {
+    const rec = recorder();
+    server.use(http.get("*/api/events", ({ request }) => {
+      rec.record(request);
+      return HttpResponse.json(eventsPage);
+    }));
+    const { result, rerender } = renderHook(
+      ({ query }: { query: { bbox: Bbox } | null }) => useEvents(query),
+      { wrapper: createQueryWrapper(), initialProps: { query: null as { bbox: Bbox } | null } },
+    );
+    rerender({ query: { bbox: pacific } });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(rec.requests).toHaveLength(1);
+    expect(rec.requests[0]?.url.searchParams.get("bbox")).toBe(PACIFIC);
+    expect(result.current.data).toEqual(eventsPage);
+  });
+});

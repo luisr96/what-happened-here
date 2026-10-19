@@ -112,3 +112,73 @@ body,
 .maplibregl-ctrl-bottom-right {
   bottom: calc(var(--time-bar-height) + 16px);
 }
+
+.map-notices {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(480px, calc(100% - 32px));
+  pointer-events: none;
+}
+
+.map-notice {
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--text);
+  text-align: center;
+}
+
+.map-notice[hidden] {
+  display: none;
+}
+
+.map-notice--error {
+  border-color: #b5414c;
+}
+
+.kinds {
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+}
+
+.kinds legend {
+  margin-bottom: 8px;
+  color: var(--text-muted);
+}
+
+.kinds__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  cursor: pointer;
+}
+
+.kinds__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.importance {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+
+.importance label {
+  color: var(--text-muted);
+}
+
+.importance input {
+  grid-column: 1 / -1;
+  accent-color: var(--accent);
+}

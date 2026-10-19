@@ -25,9 +25,12 @@ export type NearbyQuery = { readonly lat: number; readonly lon: number; readonly
 // values is the same query and doesn't refetch. Every queryFn passes TanStack's `signal` on,
 // which is what lets TanStack abort a request once nothing is waiting for it.
 
-/** Events in the viewport; keeps showing the previous result while a new one loads. */
-export function useEvents(query: EventsQuery): UseQueryResult<EventsResponse, ApiError> {
-  const params = {
+/**
+ * Events in the viewport; keeps showing the previous result while a new one loads. Idle (no
+ * request) while `query` is null, e.g. before the map has reported its first view.
+ */
+export function useEvents(query: EventsQuery | null): UseQueryResult<EventsResponse, ApiError> {
+  const params = query === null ? null : {
     bbox: bboxParam(query.bbox),
     from: query.from,
     to: query.to,
@@ -37,7 +40,9 @@ export function useEvents(query: EventsQuery): UseQueryResult<EventsResponse, Ap
   };
   return useQuery({
     queryKey: ["events", params],
-    queryFn: ({ signal }) => apiGet<EventsResponse>("/events", params, signal),
+    queryFn: params === null
+      ? skipToken
+      : ({ signal }) => apiGet<EventsResponse>("/events", params, signal),
     placeholderData: keepPreviousData,
   });
 }
