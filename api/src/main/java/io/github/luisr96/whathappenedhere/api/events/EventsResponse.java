@@ -11,11 +11,16 @@ public record EventsResponse(
                 + "(raise minImportance or zoom in)")
         boolean truncated) {
 
-    /** One event as the map shows it. */
+    /**
+     * One event as the map shows it. Enum-like fields are strings with their values listed, so
+     * the API's contract doesn't hang on the extractor's types; OpenApiDocsTest keeps the lists
+     * equal to the extractor's enums.
+     */
     public record EventView(
             @Schema(description = "<QID>:<KIND>, e.g. Q254:BORN") String id,
             @Schema(description = "Wikidata item, e.g. Q254") String itemId,
-            @Schema(description = "HAPPENED, BORN, DIED, FOUNDED, ENDED or OPENED") String kind,
+            @Schema(description = "Kind of moment", allowableValues = {"HAPPENED", "BORN", "DIED",
+                    "FOUNDED", "ENDED", "OPENED"}) String kind,
             @Schema(description = "English label, or null", nullable = true) String label,
             @Schema(description = "Number of Wikipedias linking to the item") int importance,
             @Schema(description = "When it happened, at the precision Wikidata states")
@@ -39,8 +44,9 @@ public record EventsResponse(
 
     /** A date as stored: fields below {@code precision} are 0; year is negative for BC. */
     public record DateView(long year, int month, int day,
-            @Schema(description = "DAY, MONTH, YEAR, DECADE, CENTURY or MILLENNIUM")
-            String precision,
-            @Schema(description = "GREGORIAN or JULIAN, as written (not converted)")
+            @Schema(description = "Finest unit the date states", allowableValues = {"MILLENNIUM",
+                    "CENTURY", "DECADE", "YEAR", "MONTH", "DAY"}) String precision,
+            @Schema(description = "Calendar as written (not converted)",
+                    allowableValues = {"GREGORIAN", "JULIAN"})
             String calendar) {}
 }

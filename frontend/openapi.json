@@ -383,11 +383,13 @@
           },
           "precision" : {
             "type" : "string",
-            "description" : "DAY, MONTH, YEAR, DECADE, CENTURY or MILLENNIUM"
+            "description" : "Finest unit the date states",
+            "enum" : [ "MILLENNIUM", "CENTURY", "DECADE", "YEAR", "MONTH", "DAY" ]
           },
           "calendar" : {
             "type" : "string",
-            "description" : "GREGORIAN or JULIAN, as written (not converted)"
+            "description" : "Calendar as written (not converted)",
+            "enum" : [ "GREGORIAN", "JULIAN" ]
           }
         },
         "required" : [ "calendar", "day", "month", "precision", "year" ]
@@ -405,7 +407,8 @@
           },
           "kind" : {
             "type" : "string",
-            "description" : "HAPPENED, BORN, DIED, FOUNDED, ENDED or OPENED"
+            "description" : "Kind of moment",
+            "enum" : [ "HAPPENED", "BORN", "DIED", "FOUNDED", "ENDED", "OPENED" ]
           },
           "label" : {
             "type" : [ "string", "null" ],

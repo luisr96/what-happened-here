@@ -114,18 +114,27 @@ export interface components {
             month: number;
             /** Format: int32 */
             day: number;
-            /** @description DAY, MONTH, YEAR, DECADE, CENTURY or MILLENNIUM */
-            precision: string;
-            /** @description GREGORIAN or JULIAN, as written (not converted) */
-            calendar: string;
+            /**
+             * @description Finest unit the date states
+             * @enum {string}
+             */
+            precision: "MILLENNIUM" | "CENTURY" | "DECADE" | "YEAR" | "MONTH" | "DAY";
+            /**
+             * @description Calendar as written (not converted)
+             * @enum {string}
+             */
+            calendar: "GREGORIAN" | "JULIAN";
         };
         EventView: {
             /** @description <QID>:<KIND>, e.g. Q254:BORN */
             id: string;
             /** @description Wikidata item, e.g. Q254 */
             itemId: string;
-            /** @description HAPPENED, BORN, DIED, FOUNDED, ENDED or OPENED */
-            kind: string;
+            /**
+             * @description Kind of moment
+             * @enum {string}
+             */
+            kind: "HAPPENED" | "BORN" | "DIED" | "FOUNDED" | "ENDED" | "OPENED";
             /** @description English label, or null */
             label: string | null;
             /**

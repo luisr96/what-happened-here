@@ -1,3 +1,5 @@
+import type { components } from "./schema";
+
 /** Viewport in degrees; `minLon > maxLon` means it crosses the antimeridian (see /events `bbox`). */
 export type Bbox = {
   readonly minLon: number;
@@ -6,7 +8,7 @@ export type Bbox = {
   readonly maxLat: number;
 };
 
-export type Kind = "HAPPENED" | "BORN" | "DIED" | "FOUNDED" | "ENDED" | "OPENED";
+export type Kind = components["schemas"]["EventView"]["kind"];
 
 type Params = Readonly<Record<string, string | number | readonly string[] | undefined>>;
 

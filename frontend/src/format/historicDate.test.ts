@@ -3,7 +3,7 @@ import type { components } from "../api/schema";
 import { formatDate, formatRange, formatYear } from "./historicDate";
 
 type DateView = components["schemas"]["DateView"];
-type Precision = "DAY" | "MONTH" | "YEAR" | "DECADE" | "CENTURY" | "MILLENNIUM";
+type Precision = DateView["precision"];
 
 function date(
   year: number,
@@ -107,7 +107,10 @@ describe("formatDate", () => {
   });
 
   it("falls back to the year for an unknown precision without throwing", () => {
-    const unknown: DateView = { year: -44, month: 3, day: 15, precision: "HOUR", calendar: "GREGORIAN" };
+    // A value newer than the generated types (e.g. an API that added a precision).
+    const unknown = {
+      year: -44, month: 3, day: 15, precision: "HOUR", calendar: "GREGORIAN",
+    } as unknown as DateView;
     expect(() => formatDate(unknown)).not.toThrow();
     expect(formatDate(unknown)).toBe("44 BC");
   });

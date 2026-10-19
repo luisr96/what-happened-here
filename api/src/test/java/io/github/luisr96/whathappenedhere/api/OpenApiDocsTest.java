@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -17,6 +18,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import io.github.luisr96.whathappenedhere.extractor.Event;
+import io.github.luisr96.whathappenedhere.extractor.HistoricDate;
+import java.util.Arrays;
 import java.util.List;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
@@ -197,6 +201,24 @@ class OpenApiDocsTest extends PostgisIntegrationTest {
                 .andExpect(jsonPath(props + ".end.anyOf[0]['$ref']", endsWith("/DateView")))
                 .andExpect(jsonPath(props + ".end.anyOf[1].type", is("null")))
                 .andExpect(jsonPath(props + ".importance.type", is("integer")));
+    }
+
+    @Test
+    void documentedEnumValuesMatchTheExtractorsEnums() throws Exception {
+        String json = docs().andReturn().getResponse().getContentAsString();
+        String schemas = "$.components.schemas.";
+        assertEquals(names(Event.Kind.values()),
+                JsonPath.read(json, schemas + "EventView.properties.kind.enum"), "EventView.kind");
+        assertEquals(names(HistoricDate.Precision.values()),
+                JsonPath.read(json, schemas + "DateView.properties.precision.enum"),
+                "DateView.precision");
+        assertEquals(names(HistoricDate.Calendar.values()),
+                JsonPath.read(json, schemas + "DateView.properties.calendar.enum"),
+                "DateView.calendar");
+    }
+
+    private static List<String> names(Enum<?>[] values) {
+        return Arrays.stream(values).map(Enum::name).toList();
     }
 
     @Test
