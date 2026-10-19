@@ -20,7 +20,9 @@ paths:
 - Javadoc explains intent, contracts and non-obvious constraints (units, nullability, why a value
   can be absent), not what the code visibly does.
 - Use `@param`/`@return` only when they add information beyond the name and type.
-- Record components are documented with `@param` on the record's Javadoc.
+- Record components are documented with `@param` on the record's Javadoc, except API response
+  records, which use `@Schema(description = ...)` instead so the text reaches the OpenAPI docs
+  (one source, not both).
 
 ## Comments
 - No comments that restate the code, narrate steps, or mark sections.
