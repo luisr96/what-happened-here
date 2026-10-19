@@ -12,8 +12,12 @@ Work from the specification only:
 - the saved Wikidata entities in extractor/src/test/resources/entities/
 - the feature description you were given
 
+The Flyway migrations in api/src/main/resources/db/migration are part of the spec: read them so
+test setup inserts data that satisfies the schema's constraints (foreign keys, checks, NOT NULL)
+and column types.
+
 Do not read implementation code under src/main beyond public type and method signatures you need
-to call. If a type or method you need doesn't exist yet, write the test against the API the spec
+to call (migrations excepted). If a type or method you need doesn't exist yet, write the test against the API the spec
 implies and state the signatures you assumed in your final message.
 
 Write tests that would catch a wrong implementation: edge cases from the spec (BC dates, precision,

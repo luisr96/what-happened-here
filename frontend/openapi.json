@@ -258,6 +258,55 @@
           }
         }
       }
+    },
+    "/events/{id}" : {
+      "get" : {
+        "tags" : [ "events-controller" ],
+        "summary" : "One event with its item's English Wikipedia summary",
+        "operationId" : "event",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "<QID>:<KIND>, e.g. Q254:BORN",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "Q254:BORN"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid, missing or malformed parameter",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "No event with this id",
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components" : {

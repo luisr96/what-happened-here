@@ -4,6 +4,7 @@ import io.github.luisr96.whathappenedhere.api.ApiDocs;
 import io.github.luisr96.whathappenedhere.api.events.EventFilter.Box;
 import io.github.luisr96.whathappenedhere.api.events.EventFilter.Circle;
 import io.github.luisr96.whathappenedhere.api.events.EventFilter.InvalidQueryException;
+import io.github.luisr96.whathappenedhere.api.wikipedia.WikipediaSummaries;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,8 +14,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /** Read endpoints over events; see {@link EventFilter} for the shared parameters. */
 @RestController
@@ -25,9 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class EventsController {
 
     private final EventRepository events;
+    private final WikipediaSummaries wikipedia;
 
-    public EventsController(EventRepository events) {
+    public EventsController(EventRepository events, WikipediaSummaries wikipedia) {
         this.events = events;
+        this.wikipedia = wikipedia;
     }
 
     /** The map view: events inside a viewport ({@code bbox=minLon,minLat,maxLon,maxLat}). */
@@ -47,6 +52,21 @@ public class EventsController {
             @RequestParam(defaultValue = "" + EventFilter.DEFAULT_LIMIT) int limit) {
         return events.find(new EventFilter(Box.parse(bbox), from, to,
                 EventFilter.parseKinds(kinds), minImportance), EventFilter.requireLimit(limit));
+    }
+
+    /** One event with its item's Wikipedia summary; 404 when the id is unknown. */
+    @GetMapping("/events/{id}")
+    @Operation(summary = "One event with its item's English Wikipedia summary")
+    @ApiResponse(responseCode = "404", description = "No event with this id",
+            content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    public EventDetails event(
+            @Parameter(description = "<QID>:<KIND>, e.g. Q254:BORN", example = "Q254:BORN")
+            @PathVariable String id) {
+        EventRepository.EventWithTitle found = events.findById(id).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "No event with id " + id));
+        return new EventDetails(found.event(),
+                wikipedia.summary(found.wikiTitle()).orElse(null));
     }
 
     /** "What happened here": events within {@code radius} metres, most important first. */

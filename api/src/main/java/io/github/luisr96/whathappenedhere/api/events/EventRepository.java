@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -22,6 +23,13 @@ public class EventRepository {
 
     // CLAUDE.md: approximate = precision unknown or >= 0.1 degrees.
     private static final double APPROXIMATE_DEG = 0.1;
+    private static final String EVENT_COLUMNS = "id, item_id, kind, label, importance, year,"
+            + " month, day, precision, calendar, end_year, end_month, end_day, end_precision,"
+            + " end_calendar, earliest_year, latest_year, coord_precision_deg, place_qid,"
+            + " ST_X(geom) AS longitude, ST_Y(geom) AS latitude";
+
+    /** One event with its item's English Wikipedia title (null without one). */
+    public record EventWithTitle(EventView event, String wikiTitle) {}
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -32,14 +40,19 @@ public class EventRepository {
     /** Matching events, most important first; one extra row tells whether the list was cut. */
     public EventsResponse find(EventFilter filter, int limit) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("limit", limit + 1);
-        String sql = "SELECT id, item_id, kind, label, importance, year, month, day, precision,"
-                + " calendar, end_year, end_month, end_day, end_precision, end_calendar,"
-                + " earliest_year, latest_year, coord_precision_deg, place_qid,"
-                + " ST_X(geom) AS longitude, ST_Y(geom) AS latitude FROM events WHERE "
-                + where(filter, params) + " ORDER BY importance DESC, id LIMIT :limit";
+        String sql = "SELECT " + EVENT_COLUMNS + " FROM events WHERE " + where(filter, params)
+                + " ORDER BY importance DESC, id LIMIT :limit";
         List<EventView> events = jdbc.query(sql, params, (rs, row) -> event(rs));
         boolean truncated = events.size() > limit;
         return new EventsResponse(truncated ? events.subList(0, limit) : events, truncated);
+    }
+
+    /** The event with this id ({@code <QID>:<KIND>}), if there is one. */
+    public Optional<EventWithTitle> findById(String id) {
+        return jdbc.query("SELECT " + EVENT_COLUMNS + ", wiki_title FROM events WHERE id = :id",
+                        new MapSqlParameterSource("id", id),
+                        (rs, row) -> new EventWithTitle(event(rs), rs.getString("wiki_title")))
+                .stream().findFirst();
     }
 
     /**

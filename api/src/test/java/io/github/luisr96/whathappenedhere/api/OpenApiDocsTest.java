@@ -142,6 +142,15 @@ class OpenApiDocsTest extends PostgisIntegrationTest {
     }
 
     @Test
+    void eventDetailDocumentsOkAndProblemDetailNotFound() throws Exception {
+        String responses = "$.paths['/events/{id}'].get.responses";
+        docs().andExpect(jsonPath("$.paths['/events/{id}'].get").exists())
+                .andExpect(jsonPath(responses + "['200']").exists())
+                .andExpect(jsonPath(responses + "['404'].content['application/problem+json'].schema['$ref']",
+                        endsWith("/ProblemDetail")));
+    }
+
+    @Test
     void problemDetailSchemaHasRfc9457Fields() throws Exception {
         String props = "$.components.schemas.ProblemDetail.properties";
         docs().andExpect(jsonPath(props + ".status").exists())
