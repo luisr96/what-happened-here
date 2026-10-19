@@ -117,10 +117,9 @@ describe("formatDate", () => {
     expect(formatDate(date(1789, "DAY", month, 14))).toBe("1789");
   });
 
-  it("shows only month and year when the day is missing or out of range", () => {
+  it("shows only month and year when the day is out of range", () => {
     expect(formatDate(date(1789, "DAY", 7, 0))).toBe("July 1789");
     expect(formatDate(date(1789, "DAY", 7, 32))).toBe("July 1789");
-    expect(formatDate({ year: 1789, month: 7, precision: "DAY", calendar: "GREGORIAN" })).toBe("July 1789");
   });
 });
 

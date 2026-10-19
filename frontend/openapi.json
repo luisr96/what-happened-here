@@ -280,7 +280,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetail"
+                  "$ref" : "#/components/schemas/EventDetails"
                 }
               }
             }
@@ -351,7 +351,8 @@
             "format" : "int64",
             "description" : "Events in the decade"
           }
-        }
+        },
+        "required" : [ "count", "decade" ]
       },
       "TimelineResponse" : {
         "type" : "object",
@@ -362,7 +363,8 @@
               "$ref" : "#/components/schemas/DecadeCount"
             }
           }
-        }
+        },
+        "required" : [ "decades" ]
       },
       "DateView" : {
         "type" : "object",
@@ -387,7 +389,8 @@
             "type" : "string",
             "description" : "GREGORIAN or JULIAN, as written (not converted)"
           }
-        }
+        },
+        "required" : [ "calendar", "day", "month", "precision", "year" ]
       },
       "EventView" : {
         "type" : "object",
@@ -405,7 +408,7 @@
             "description" : "HAPPENED, BORN, DIED, FOUNDED, ENDED or OPENED"
           },
           "label" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "description" : "English label, or null"
           },
           "importance" : {
@@ -418,7 +421,11 @@
             "description" : "When it happened, at the precision Wikidata states"
           },
           "end" : {
-            "$ref" : "#/components/schemas/DateView",
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DateView"
+            }, {
+              "type" : "null"
+            } ],
             "description" : "End of a range, or null for a point in time"
           },
           "earliestYear" : {
@@ -442,7 +449,7 @@
             "description" : "WGS84 degrees: the item's own or its place's coordinates"
           },
           "coordPrecisionDeg" : {
-            "type" : "number",
+            "type" : [ "number", "null" ],
             "format" : "double",
             "description" : "Coordinate precision in degrees, or null when unknown"
           },
@@ -451,10 +458,11 @@
             "description" : "Show as approximate: precision unknown or at least 0.1 degrees"
           },
           "placeQid" : {
-            "type" : "string",
+            "type" : [ "string", "null" ],
             "description" : "Place whose coordinates were used, or null for the item's own P625 coordinates"
           }
-        }
+        },
+        "required" : [ "approximate", "coordPrecisionDeg", "earliestYear", "end", "id", "importance", "itemId", "kind", "label", "latestYear", "latitude", "longitude", "placeQid", "when" ]
       },
       "EventsResponse" : {
         "type" : "object",
@@ -470,7 +478,48 @@
             "type" : "boolean",
             "description" : "True when more events matched than were returned (raise minImportance or zoom in)"
           }
-        }
+        },
+        "required" : [ "events", "truncated" ]
+      },
+      "EventDetails" : {
+        "type" : "object",
+        "properties" : {
+          "event" : {
+            "$ref" : "#/components/schemas/EventView",
+            "description" : "The event, as in /events"
+          },
+          "wikipedia" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/WikipediaSummary"
+            }, {
+              "type" : "null"
+            } ],
+            "description" : "English Wikipedia summary of the event's item, or null when it has no article or Wikipedia could not be reached"
+          }
+        },
+        "required" : [ "event", "wikipedia" ]
+      },
+      "WikipediaSummary" : {
+        "type" : "object",
+        "properties" : {
+          "title" : {
+            "type" : "string",
+            "description" : "Article title as Wikipedia displays it"
+          },
+          "extract" : {
+            "type" : "string",
+            "description" : "First paragraph, plain text"
+          },
+          "url" : {
+            "type" : "string",
+            "description" : "Link to the article"
+          },
+          "thumbnailUrl" : {
+            "type" : [ "string", "null" ],
+            "description" : "Lead image URL, or null when the article has none"
+          }
+        },
+        "required" : [ "extract", "thumbnailUrl", "title", "url" ]
       }
     }
   }

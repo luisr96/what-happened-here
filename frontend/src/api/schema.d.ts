@@ -97,81 +97,97 @@ export interface components {
              * Format: int64
              * @description First year of the decade, floor(year / 10) * 10: -50 covers -50..-41
              */
-            decade?: number;
+            decade: number;
             /**
              * Format: int64
              * @description Events in the decade
              */
-            count?: number;
+            count: number;
         };
         TimelineResponse: {
-            decades?: components["schemas"]["DecadeCount"][];
+            decades: components["schemas"]["DecadeCount"][];
         };
         DateView: {
             /** Format: int64 */
-            year?: number;
+            year: number;
             /** Format: int32 */
-            month?: number;
+            month: number;
             /** Format: int32 */
-            day?: number;
+            day: number;
             /** @description DAY, MONTH, YEAR, DECADE, CENTURY or MILLENNIUM */
-            precision?: string;
+            precision: string;
             /** @description GREGORIAN or JULIAN, as written (not converted) */
-            calendar?: string;
+            calendar: string;
         };
         EventView: {
             /** @description <QID>:<KIND>, e.g. Q254:BORN */
-            id?: string;
+            id: string;
             /** @description Wikidata item, e.g. Q254 */
-            itemId?: string;
+            itemId: string;
             /** @description HAPPENED, BORN, DIED, FOUNDED, ENDED or OPENED */
-            kind?: string;
+            kind: string;
             /** @description English label, or null */
-            label?: string;
+            label: string | null;
             /**
              * Format: int32
              * @description Number of Wikipedias linking to the item
              */
-            importance?: number;
+            importance: number;
             /** @description When it happened, at the precision Wikidata states */
-            when?: components["schemas"]["DateView"];
+            when: components["schemas"]["DateView"];
             /** @description End of a range, or null for a point in time */
-            end?: components["schemas"]["DateView"];
+            end: components["schemas"]["DateView"] | null;
             /**
              * Format: int64
              * @description First year the event may fall in, given its precision (a century spans 100 years); negative for BC
              */
-            earliestYear?: number;
+            earliestYear: number;
             /**
              * Format: int64
              * @description Last year the event may fall in (of the end date if any)
              */
-            latestYear?: number;
+            latestYear: number;
             /**
              * Format: double
              * @description WGS84 degrees: the item's own or its place's coordinates
              */
-            latitude?: number;
+            latitude: number;
             /**
              * Format: double
              * @description WGS84 degrees: the item's own or its place's coordinates
              */
-            longitude?: number;
+            longitude: number;
             /**
              * Format: double
              * @description Coordinate precision in degrees, or null when unknown
              */
-            coordPrecisionDeg?: number;
+            coordPrecisionDeg: number | null;
             /** @description Show as approximate: precision unknown or at least 0.1 degrees */
-            approximate?: boolean;
+            approximate: boolean;
             /** @description Place whose coordinates were used, or null for the item's own P625 coordinates */
-            placeQid?: string;
+            placeQid: string | null;
         };
         EventsResponse: {
             /** @description Matching events, most important first */
-            events?: components["schemas"]["EventView"][];
+            events: components["schemas"]["EventView"][];
             /** @description True when more events matched than were returned (raise minImportance or zoom in) */
-            truncated?: boolean;
+            truncated: boolean;
+        };
+        EventDetails: {
+            /** @description The event, as in /events */
+            event: components["schemas"]["EventView"];
+            /** @description English Wikipedia summary of the event's item, or null when it has no article or Wikipedia could not be reached */
+            wikipedia: components["schemas"]["WikipediaSummary"] | null;
+        };
+        WikipediaSummary: {
+            /** @description Article title as Wikipedia displays it */
+            title: string;
+            /** @description First paragraph, plain text */
+            extract: string;
+            /** @description Link to the article */
+            url: string;
+            /** @description Lead image URL, or null when the article has none */
+            thumbnailUrl: string | null;
         };
     };
     responses: never;
@@ -342,7 +358,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ProblemDetail"];
+                    "*/*": components["schemas"]["EventDetails"];
                 };
             };
             /** @description Invalid, missing or malformed parameter */

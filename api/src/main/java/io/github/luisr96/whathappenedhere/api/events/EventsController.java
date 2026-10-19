@@ -57,6 +57,9 @@ public class EventsController {
     /** One event with its item's Wikipedia summary; 404 when the id is unknown. */
     @GetMapping("/events/{id}")
     @Operation(summary = "One event with its item's English Wikipedia summary")
+    // Declared explicitly: otherwise springdoc documents the 200 body with the 404's schema.
+    @ApiResponse(responseCode = "200", description = "OK",
+            content = @Content(schema = @Schema(implementation = EventDetails.class)))
     @ApiResponse(responseCode = "404", description = "No event with this id",
             content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class)))

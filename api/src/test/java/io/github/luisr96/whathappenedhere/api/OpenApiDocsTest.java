@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -173,10 +174,34 @@ class OpenApiDocsTest extends PostgisIntegrationTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"/places/nearby,/EventsResponse", "/stats/timeline,/TimelineResponse"})
+    @CsvSource({"/places/nearby,/EventsResponse", "/stats/timeline,/TimelineResponse",
+            "/events/{id},/EventDetails"})
     void okResponseReferencesItsSchema(String path, String schemaSuffix) throws Exception {
         docs().andExpect(jsonPath("$.paths['" + path + "'].get.responses['200'].content.*.schema['$ref']",
                 hasItem(endsWith(schemaSuffix))));
+    }
+
+    @Test
+    void everyEventViewPropertyIsRequiredSoClientsNeedNotGuess() throws Exception {
+        String json = docs().andReturn().getResponse().getContentAsString();
+        java.util.Map<String, Object> properties =
+                JsonPath.read(json, "$.components.schemas.EventView.properties");
+        List<String> required = JsonPath.read(json, "$.components.schemas.EventView.required");
+        assertTrue(required.containsAll(properties.keySet()), "required: " + required);
+    }
+
+    @Test
+    void nullableFieldsAdmitNull() throws Exception {
+        String props = "$.components.schemas.EventView.properties";
+        docs().andExpect(jsonPath(props + ".label.type", hasItem("null")))
+                .andExpect(jsonPath(props + ".end.anyOf[0]['$ref']", endsWith("/DateView")))
+                .andExpect(jsonPath(props + ".end.anyOf[1].type", is("null")))
+                .andExpect(jsonPath(props + ".importance.type", is("integer")));
+    }
+
+    @Test
+    void problemDetailFieldsStayOptional() throws Exception {
+        docs().andExpect(jsonPath("$.components.schemas.ProblemDetail.required").doesNotExist());
     }
 
     @Test

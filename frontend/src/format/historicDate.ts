@@ -15,15 +15,15 @@ export function formatYear(year: number): string {
 /**
  * A date at the precision Wikidata states, never more exact: "14 July 1789", "1880s",
  * "19th century". Periods follow Wikidata (and the backend's `HistoricDate`): decades count
- * from 0, centuries and millennia from 1, BC mirrors CE. The API always sends `year`; a
- * missing or out-of-range month or day falls back to the next coarser precision.
+ * from 0, centuries and millennia from 1, BC mirrors CE. An out-of-range month or day falls
+ * back to the next coarser precision.
  */
 export function formatDate(date: DateView): string {
-  const year = date.year ?? 0;
+  const year = date.year;
   const bc = year < 0 ? " BC" : "";
   const magnitude = Math.abs(year);
-  const month = date.month === undefined ? undefined : MONTHS[date.month - 1];
-  const day = date.day !== undefined && date.day >= 1 && date.day <= 31 ? date.day : undefined;
+  const month = MONTHS[date.month - 1];
+  const day = date.day >= 1 && date.day <= 31 ? date.day : undefined;
   // The calendar only changes the day and month shown, so only those carry the marker.
   const julian = date.calendar === "JULIAN" ? " (Julian)" : "";
 

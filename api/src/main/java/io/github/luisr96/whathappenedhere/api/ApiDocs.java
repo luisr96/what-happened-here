@@ -3,6 +3,12 @@ package io.github.luisr96.whathappenedhere.api;
 import io.github.luisr96.whathappenedhere.api.events.EventFilter;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.Schema;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -44,5 +50,39 @@ public class ApiDocs {
                 .version("0.1.0")
                 .description("Events from Wikidata with a time and a place. Errors are RFC 9457 "
                         + "problem details (application/problem+json)."));
+    }
+
+    /**
+     * Jackson writes every record component, nulls included, so every property of our response
+     * records is required; the ones marked {@code @Schema(nullable = true)} read as "T or null"
+     * (swagger-core turns that into a {@code null} type, which next to a {@code $ref} must become
+     * {@code anyOf}). The frontend's generated types then say {@code T | null} instead of making
+     * every field optional. This relies on OpenAPI 3.1 output (3.0 has no null type). Spring's
+     * {@code ProblemDetail} (springdoc's component name for it) is left alone: its fields are
+     * really optional.
+     */
+    @Bean
+    OpenApiCustomizer requiredAndNullableProperties() {
+        return openApi -> openApi.getComponents().getSchemas().forEach((name, schema) -> {
+            Map<String, Schema> properties = schema.getProperties();
+            if (properties == null || name.equals("ProblemDetail")) {
+                return;
+            }
+            properties.values().forEach(ApiDocs::nullableRefAsAnyOf);
+            schema.setRequired(new ArrayList<>(properties.keySet()));
+        });
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void nullableRefAsAnyOf(Schema property) {
+        if (property.get$ref() == null || property.getTypes() == null
+                || !property.getTypes().contains("null")) {
+            return;
+        }
+        Schema ref = new Schema().$ref(property.get$ref());
+        property.set$ref(null);
+        property.setTypes(null);
+        property.setType(null);
+        property.setAnyOf(List.of(ref, new Schema().types(Set.of("null"))));
     }
 }
