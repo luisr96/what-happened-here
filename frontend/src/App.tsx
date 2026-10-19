@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Bbox, Kind } from "./api/client";
-import { useEvents, useTimeline } from "./api/hooks";
+import { useEvent, useEvents, useTimeline } from "./api/hooks";
+import { DetailsPanel } from "./details/DetailsPanel";
 import { MapNotices } from "./map/MapNotices";
 import { MapView } from "./map/MapView";
 import { KINDS } from "./map/kinds";
@@ -20,6 +21,8 @@ export function App() {
   const [kinds, setKinds] = useState<readonly Kind[]>(KINDS);
   const [minImportance, setMinImportance] = useState(0);
   const [range, setRange] = useState<YearRange | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const mapRef = useRef<HTMLElement>(null);
 
   const requestedMinImportance = useDebouncedValue(minImportance, SLIDER_SETTLE_MS);
   const requestedRange = useThrottledValue(range, RANGE_THROTTLE_MS);
@@ -34,10 +37,19 @@ export function App() {
   });
   const timeline = useTimeline(bbox);
   const shown = noKinds ? [] : events.data?.events ?? [];
+  // The same query the details panel runs (TanStack shares it), for the selection ring.
+  const selectedEvent = useEvent(selectedId).data?.event ?? null;
 
   return (
     <div className="app">
-      <MapView events={shown} onViewportChange={setBbox} />
+      <MapView
+        ref={mapRef}
+        events={shown}
+        onViewportChange={setBbox}
+        selectedId={selectedId}
+        selectedEvent={selectedEvent}
+        onSelect={setSelectedId}
+      />
       <MapNotices
         noKinds={noKinds}
         truncated={!noKinds && events.data?.truncated === true}
@@ -49,6 +61,9 @@ export function App() {
         minImportance={minImportance}
         onMinImportanceChange={setMinImportance}
       />
+      {selectedId !== null && (
+        <DetailsPanel id={selectedId} onClose={() => setSelectedId(null)} returnFocusTo={mapRef} />
+      )}
       <TimeBar decades={timeline.data?.decades ?? []} range={range} onRangeChange={setRange} />
     </div>
   );

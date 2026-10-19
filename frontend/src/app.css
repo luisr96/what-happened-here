@@ -32,9 +32,12 @@ body,
   overflow: hidden;
 }
 
+/* Its own stacking context, so deck.gl's overlay canvas (positioned inside it) can't rise above
+   the panels laid over the map. */
 .map {
   position: absolute;
   inset: 0;
+  z-index: 0;
 }
 
 .side-panel {
@@ -339,4 +342,78 @@ body,
 .importance input {
   grid-column: 1 / -1;
   accent-color: var(--accent);
+}
+
+.details-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  /* Stops above the map credit, which sits just over the time bar and must stay visible. */
+  bottom: calc(var(--time-bar-height) + 48px);
+  width: min(340px, calc(100% - 24px));
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+}
+
+.details-panel h2 {
+  margin: 0 32px 4px 0;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.details-panel p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.details-panel__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.details-panel__close:hover {
+  color: var(--text);
+}
+
+.details-panel__image {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  margin: 0 auto 12px;
+  border-radius: 4px;
+}
+
+.details-panel__when {
+  color: var(--accent);
+}
+
+.details-panel__note {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.details-panel__error {
+  color: #f0626e;
+}
+
+.details-panel__links {
+  display: flex;
+  gap: 16px;
+}
+
+.details-panel__links a {
+  color: var(--accent);
 }

@@ -42,8 +42,18 @@ const COMMON = {
   },
 } as const;
 
+const RING_COLOR: [number, number, number] = [255, 255, 255];
+const RING_WIDTH_PX = 2;
+const RING_GAP_PX = 3;
+
+/** All layers, bottom to top: approximate halos, exact points, then the selected event's ring. */
+export function eventLayers(events: readonly EventView[], selectedId: string | null = null): Layer[] {
+  const selected = selectedId === null ? null : events.find((e) => e.id === selectedId) ?? null;
+  return [...pointLayers(events), selectionLayer(selected)];
+}
+
 /** Halos for approximate events underneath, exact points on top; both pickable for tooltips. */
-export function eventLayers(events: readonly EventView[]): Layer[] {
+export function pointLayers(events: readonly EventView[]): Layer[] {
   return [
     new ScatterplotLayer<EventView>({
       ...COMMON,
@@ -60,4 +70,24 @@ export function eventLayers(events: readonly EventView[]): Layer[] {
       getRadius: (e) => radiusPx(e.importance),
     }),
   ];
+}
+
+/**
+ * A ring around the selected event, just outside its point or halo. Separate from the point
+ * layers so selecting an event rebuilds only this one-point layer, not every point's buffers.
+ */
+export function selectionLayer(selected: EventView | null): Layer {
+  return new ScatterplotLayer<EventView>({
+    id: "events-selected",
+    data: selected === null ? [] : [selected],
+    pickable: false,
+    stroked: true,
+    filled: false,
+    radiusUnits: "pixels",
+    lineWidthUnits: "pixels",
+    getPosition: (e) => [e.longitude, e.latitude],
+    getRadius: (e) => (e.approximate ? haloRadiusPx(e.importance) : radiusPx(e.importance)) + RING_GAP_PX,
+    getLineColor: RING_COLOR,
+    getLineWidth: RING_WIDTH_PX,
+  });
 }

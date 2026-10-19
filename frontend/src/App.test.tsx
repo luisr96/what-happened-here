@@ -8,11 +8,13 @@ import type { EventView, TimelineResponse } from "./api/hooks";
 import { App } from "./App";
 import {
   badBboxProblem,
+  caesarDetails,
   caesarDied,
   emptyEvents,
   eventsPage,
   fijiFounded,
   lisbonEarthquake,
+  mozartDetailsNoWikipedia,
   otherEventsPage,
   problemJson,
 } from "./test/apiFixtures";
@@ -22,13 +24,21 @@ import { server } from "./test/server";
 type MapViewProps = {
   readonly events: readonly EventView[];
   readonly onViewportChange: (bbox: Bbox) => void;
+  readonly selectedId?: string | null;
+  readonly onSelect?: (id: string) => void;
 };
 
-const mapView = vi.hoisted(() => ({ onViewportChange: null as ((bbox: Bbox) => void) | null }));
+const mapView = vi.hoisted(() => ({
+  onViewportChange: null as ((bbox: Bbox) => void) | null,
+  onSelect: null as ((id: string) => void) | null,
+  selectedId: undefined as string | null | undefined,
+}));
 
 vi.mock("./map/MapView", () => ({
-  MapView: ({ events, onViewportChange }: MapViewProps) => {
+  MapView: ({ events, onViewportChange, selectedId, onSelect }: MapViewProps) => {
     mapView.onViewportChange = onViewportChange;
+    mapView.onSelect = onSelect ?? null;
+    mapView.selectedId = selectedId;
     return (
       <section aria-label="Map">
         <ul aria-label="Events on the map">
@@ -57,6 +67,8 @@ function recordEvents(respond: (url: URL) => Response | Promise<Response> = () =
 
 function renderApp() {
   mapView.onViewportChange = null;
+  mapView.onSelect = null;
+  mapView.selectedId = undefined;
   return render(<App />, { wrapper: createQueryWrapper() });
 }
 
@@ -367,5 +379,97 @@ describe("App timeline", () => {
     await user.type(input, "44{Enter}");
 
     await waitFor(() => expect(urls.some((u) => u.searchParams.get("from") === "-44")).toBe(true));
+  });
+});
+
+function recordDetails() {
+  const paths: string[] = [];
+  server.use(http.get("*/api/events/:id", ({ request, params }) => {
+    paths.push(new URL(request.url).pathname);
+    const id = decodeURIComponent(String(params["id"]));
+    const body = [caesarDetails, mozartDetailsNoWikipedia].find((d) => d.event.id === id);
+    return body
+      ? HttpResponse.json(body)
+      : HttpResponse.json(
+        { type: "about:blank", title: "Not Found", status: 404, detail: `No event ${id}`, instance: `/events/${id}` },
+        { status: 404, headers: problemJson },
+      );
+  }));
+  return paths;
+}
+
+function selectEvent(id: string) {
+  const select = mapView.onSelect;
+  if (select === null) throw new Error("MapView was not given onSelect");
+  act(() => select(id));
+}
+
+const detailsPanel = () => screen.queryByRole("complementary", { name: "Event details" });
+
+describe("App details panel", () => {
+  it("shows no details panel and passes no selection before an event is clicked", () => {
+    recordEvents();
+    renderApp();
+    expect(detailsPanel()).not.toBeInTheDocument();
+    expect(mapView.selectedId ?? null).toBeNull();
+  });
+
+  it("opens the panel for a clicked event, requests its details and marks it selected on the map", async () => {
+    recordEvents();
+    const paths = recordDetails();
+    renderApp();
+    reportViewport(europe);
+    await mapEvents().findByText("Julius Caesar");
+
+    selectEvent(caesarDied.id);
+
+    const panel = await screen.findByRole("complementary", { name: "Event details" });
+    expect(await within(panel).findByRole("heading", { level: 2, name: "Julius Caesar" })).toBeInTheDocument();
+    expect(mapView.selectedId).toBe("Q1048:DIED");
+    expect(paths.map(decodeURIComponent)).toEqual(["/api/events/Q1048:DIED"]);
+  });
+
+  it("closes the panel and clears the selection with Close details", async () => {
+    const user = userEvent.setup();
+    recordEvents();
+    recordDetails();
+    renderApp();
+    reportViewport(europe);
+    selectEvent(caesarDied.id);
+    await screen.findByRole("heading", { level: 2, name: "Julius Caesar" });
+
+    await user.click(screen.getByRole("button", { name: "Close details" }));
+
+    await waitFor(() => expect(detailsPanel()).not.toBeInTheDocument());
+    expect(mapView.selectedId).toBeNull();
+  });
+
+  it("replaces the panel content when another event is selected", async () => {
+    recordEvents();
+    const paths = recordDetails();
+    renderApp();
+    reportViewport(europe);
+    selectEvent(caesarDied.id);
+    await screen.findByRole("heading", { level: 2, name: "Julius Caesar" });
+
+    selectEvent(mozartDetailsNoWikipedia.event.id);
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Q254" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: "Julius Caesar" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("complementary", { name: "Event details" })).toHaveLength(1);
+    expect(mapView.selectedId).toBe("Q254:BORN");
+    expect(paths.map(decodeURIComponent)).toContain("/api/events/Q254:BORN");
+  });
+
+  it("shows a 404 problem for an unknown event inside the panel", async () => {
+    recordEvents();
+    recordDetails();
+    renderApp();
+    reportViewport(europe);
+
+    selectEvent("Q999:BORN");
+
+    const panel = await screen.findByRole("complementary", { name: "Event details" });
+    expect(await within(panel).findByRole("alert")).toHaveTextContent("No event Q999:BORN");
   });
 });

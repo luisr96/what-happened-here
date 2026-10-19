@@ -1,12 +1,12 @@
 import type { PickingInfo } from "@deck.gl/core";
 import { MapboxOverlay, type MapboxOverlayProps } from "@deck.gl/mapbox";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type Ref } from "react";
 import type { LngLatBounds } from "maplibre-gl";
 import { Map, useControl } from "react-map-gl/maplibre";
 import type { Bbox } from "../api/client";
 import type { EventView } from "../api/hooks";
 import { viewportToBbox } from "./bbox";
-import { eventLayers } from "./eventLayers";
+import { pointLayers, selectionLayer } from "./eventLayers";
 import { tooltipText } from "./tooltip";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
@@ -25,6 +25,15 @@ function DeckOverlay(props: MapboxOverlayProps) {
 export type MapViewProps = {
   readonly events: readonly EventView[];
   readonly onViewportChange: (bbox: Bbox) => void;
+  readonly selectedId: string | null;
+  /**
+   * The selected event as loaded for the details panel, so its ring stays drawn after a pan or
+   * filter drops it from `events`; until it loads, the ring uses the event from `events`.
+   */
+  readonly selectedEvent?: EventView | null;
+  readonly onSelect: (id: string) => void;
+  /** The map region, focusable from script (e.g. when the details panel closes). */
+  readonly ref?: Ref<HTMLElement>;
 };
 
 // deck.gl styles its tooltip inline; these override its defaults to match the side panel.
@@ -50,11 +59,15 @@ function tooltip({ object }: PickingInfo<EventView>) {
   }
 }
 
-export function MapView({ events, onViewportChange }: MapViewProps) {
+export function MapView({ events, onViewportChange, selectedId, selectedEvent, onSelect, ref }: MapViewProps) {
   // Busy until MapLibre's load event, which fires once the style has loaded.
   const [loaded, setLoaded] = useState(false);
   // Memoized so deck.gl sees the same layers between renders and doesn't re-diff its data.
-  const layers = useMemo(() => eventLayers(events), [events]);
+  // The ring is memoized apart, so selecting an event leaves the point layers untouched.
+  const points = useMemo(() => pointLayers(events), [events]);
+  const selected = selectedEvent ?? (selectedId === null ? null : events.find((e) => e.id === selectedId) ?? null);
+  const ring = useMemo(() => selectionLayer(selected), [selected]);
+  const layers = useMemo(() => [...points, ring], [points, ring]);
 
   // Reported once loaded and then after each pan or zoom ends, not on every animation frame.
   const report = (map: { getBounds(): LngLatBounds }) => {
@@ -68,7 +81,7 @@ export function MapView({ events, onViewportChange }: MapViewProps) {
   };
 
   return (
-    <section className="map" aria-label="Map" aria-busy={!loaded}>
+    <section className="map" aria-label="Map" aria-busy={!loaded} ref={ref} tabIndex={-1}>
       <Map
         onLoad={(e) => {
           setLoaded(true);
@@ -82,7 +95,13 @@ export function MapView({ events, onViewportChange }: MapViewProps) {
         // MapLibre labels its canvas "Map" too; a distinct name keeps the landmark unique.
         locale={{ "Map.Title": "Pan and zoom area" }}
       >
-        <DeckOverlay layers={layers} getTooltip={tooltip} />
+        <DeckOverlay
+          layers={layers}
+          getTooltip={tooltip}
+          onClick={({ object }: PickingInfo<EventView>) => {
+            if (object !== undefined) onSelect(object.id);
+          }}
+        />
       </Map>
     </section>
   );

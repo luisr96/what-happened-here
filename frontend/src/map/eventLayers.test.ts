@@ -2,14 +2,14 @@ import { ScatterplotLayer } from "@deck.gl/layers";
 import { describe, expect, it } from "vitest";
 import type { EventView } from "../api/hooks";
 import { caesarDied, fijiFounded, lisbonEarthquake, mozartBorn } from "../test/apiFixtures";
-import { eventLayers } from "./eventLayers";
+import { eventLayers, selectionLayer } from "./eventLayers";
 import { kindColor } from "./kinds";
 
 const all: readonly EventView[] = [caesarDied, lisbonEarthquake, fijiFounded, mozartBorn];
 
 function layers(events: readonly EventView[] = all) {
   const result = eventLayers(events);
-  expect(result).toHaveLength(2);
+  expect(result.length).toBeGreaterThanOrEqual(2);
   const [halo, exact] = result;
   if (!(halo instanceof ScatterplotLayer) || !(exact instanceof ScatterplotLayer)) {
     throw new Error("expected two ScatterplotLayers");
@@ -85,5 +85,64 @@ describe("eventLayers", () => {
       expect(accessor<number>(halo, "getRadius")(withImportance(importance)))
         .toBeGreaterThan(accessor<number>(exact, "getRadius")(withImportance(importance)));
     }
+  });
+});
+
+describe("eventLayers selection ring", () => {
+  function withSelection(events: readonly EventView[], selectedId?: string | null) {
+    const result = selectedId === undefined ? eventLayers(events) : eventLayers(events, selectedId);
+    expect(result).toHaveLength(3);
+    const ring = result[2];
+    if (!(ring instanceof ScatterplotLayer)) throw new Error("expected a ScatterplotLayer");
+    return { ring, result };
+  }
+
+  it("adds a third layer, events-selected, drawn after the halos and points", () => {
+    const { ring, result } = withSelection(all, caesarDied.id);
+    expect(result[0]?.id).toBe("events-approximate");
+    expect(result[1]?.id).toBe("events-exact");
+    expect(ring.id).toBe("events-selected");
+  });
+
+  it("contains only the selected event, exact or approximate", () => {
+    expect(withSelection(all, caesarDied.id).ring.props.data).toEqual([caesarDied]);
+    expect(withSelection(all, fijiFounded.id).ring.props.data).toEqual([fijiFounded]);
+  });
+
+  it("is empty when nothing is selected", () => {
+    expect(withSelection(all).ring.props.data).toEqual([]);
+    expect(withSelection(all, null).ring.props.data).toEqual([]);
+  });
+
+  it("is empty when the selected event is not among the events", () => {
+    expect(withSelection([lisbonEarthquake], caesarDied.id).ring.props.data).toEqual([]);
+  });
+
+  it("draws an unfilled, stroked ring that is not pickable", () => {
+    const { ring } = withSelection(all, caesarDied.id);
+    expect(ring.props.stroked).toBe(true);
+    expect(ring.props.filled).toBe(false);
+    expect(ring.props.pickable).toBe(false);
+  });
+
+  it("keeps the halo and point layers unchanged when an event is selected", () => {
+    const { result } = withSelection(all, caesarDied.id);
+    expect(result[0]?.props.data).toEqual([lisbonEarthquake, fijiFounded, mozartBorn]);
+    expect(result[1]?.props.data).toEqual([caesarDied]);
+    expect(result[0]?.props.pickable).toBe(true);
+    expect(result[1]?.props.pickable).toBe(true);
+  });
+
+  it("positions the ring at the selected event, near the antimeridian too", () => {
+    const { ring } = withSelection(all, fijiFounded.id);
+    expect(accessor(ring, "getPosition")(fijiFounded)).toEqual([179.9, -17.8]);
+  });
+});
+
+describe("selectionLayer", () => {
+  it("rings the given event even when it's no longer among the loaded events", () => {
+    const ring = selectionLayer(caesarDied);
+    expect(ring.props.data).toEqual([caesarDied]);
+    expect(selectionLayer(null).props.data).toEqual([]);
   });
 });
