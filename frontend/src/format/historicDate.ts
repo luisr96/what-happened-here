@@ -38,9 +38,12 @@ export function formatDate(date: DateView): string {
     case "DECADE":
       return `${Math.floor(magnitude / 10) * 10}s${bc}`;
     case "CENTURY":
-      return `${ordinal(Math.ceil(magnitude / 100))} century${bc}`;
-    case "MILLENNIUM":
-      return `${ordinal(Math.ceil(magnitude / 1000))} millennium${bc}`;
+    case "MILLENNIUM": {
+      const span = bcSpan(date);
+      if (span !== null) return `${span.first}–${span.last} BC`;
+      const unit = date.precision === "CENTURY" ? 100 : 1000;
+      return `${ordinal(Math.ceil(magnitude / unit))} ${date.precision === "CENTURY" ? "century" : "millennium"}`;
+    }
     default:
       return formatYear(year);
   }
@@ -50,8 +53,23 @@ export function formatDate(date: DateView): string {
 export function formatRange(start: DateView, end?: DateView | null): string {
   const from = formatDate(start);
   if (!end) return from;
+  // Two BC periods read as one span: "5400–4401 BC", not "5400–5301 BC – 4500–4401 BC".
+  const startSpan = bcSpan(start);
+  const endSpan = bcSpan(end);
+  if (startSpan !== null && endSpan !== null) return `${startSpan.first}–${endSpan.last} BC`;
   const to = formatDate(end);
   return from === to ? from : `${from} – ${to}`;
+}
+
+/**
+ * A BC century or millennium as the years it covers, oldest first ("73rd century BC" is
+ * 7300–7201 BC): ordinals that far back are hard to read. Null for anything else.
+ */
+function bcSpan(date: DateView): { first: number; last: number } | null {
+  if (date.year >= 0 || (date.precision !== "CENTURY" && date.precision !== "MILLENNIUM")) return null;
+  const unit = date.precision === "CENTURY" ? 100 : 1000;
+  const first = Math.ceil(-date.year / unit) * unit;
+  return { first, last: first - unit + 1 };
 }
 
 /** 11th–13th take "th" whatever their last digit: 111th, but 101st. */
