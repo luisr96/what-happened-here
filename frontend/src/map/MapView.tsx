@@ -39,7 +39,15 @@ const TOOLTIP_STYLE = {
 };
 
 function tooltip({ object }: PickingInfo<EventView>) {
-  return object === undefined ? null : { text: tooltipText(object), style: TOOLTIP_STYLE };
+  if (object === undefined) return null;
+  try {
+    return { text: tooltipText(object), style: TOOLTIP_STYLE };
+  } catch (error) {
+    // An exception thrown here stops deck.gl's hovering and redrawing for good, so one event's
+    // bad data (or a bug in formatting it) must not escape: log it and show the name alone.
+    console.error("Could not build the tooltip for", object.id, error);
+    return { text: object.label ?? object.itemId, style: TOOLTIP_STYLE };
+  }
 }
 
 export function MapView({ events, onViewportChange }: MapViewProps) {
