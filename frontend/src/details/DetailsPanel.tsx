@@ -1,41 +1,25 @@
-import { useEffect, useRef, type RefObject } from "react";
+import type { RefObject } from "react";
 import { useEvent, type EventDetails } from "../api/hooks";
 import { formatRange } from "../format/historicDate";
 import { kindLabel } from "../map/kinds";
+import { usePanelFocus } from "../util/usePanelFocus";
 
 export type DetailsPanelProps = {
   readonly id: string;
   readonly onClose: () => void;
   /** Where focus goes on close when whatever had it before the panel opened can't take it back. */
   readonly returnFocusTo?: RefObject<HTMLElement | null>;
+  /** When given (opened from the "what happened here" list), a "Back to list" button calls it. */
+  readonly onBack?: () => void;
 };
 
 /**
  * The selected event: what, when, its English Wikipedia summary and links. Fetches its own data;
  * App only says which event is selected. A new id shows "Loading…", never the previous event.
  */
-export function DetailsPanel({ id, onClose, returnFocusTo }: DetailsPanelProps) {
+export function DetailsPanel({ id, onClose, returnFocusTo, onBack }: DetailsPanelProps) {
   const details = useEvent(id);
-  const panel = useRef<HTMLElement>(null);
-
-  // Focus returns on close to what had it on open (a click on the map leaves it on <body>,
-  // which can't take it, hence the fallback). Captured before the panel takes focus below.
-  useEffect(() => {
-    const opener = document.activeElement;
-    return () => {
-      if (opener instanceof HTMLElement && opener !== document.body && opener.isConnected) {
-        opener.focus();
-      } else {
-        returnFocusTo?.current?.focus();
-      }
-    };
-  }, [returnFocusTo]);
-
-  // Each newly selected event moves focus into the panel, so keyboard and screen-reader users
-  // land on it and Escape closes it.
-  useEffect(() => {
-    panel.current?.focus();
-  }, [id]);
+  const panel = usePanelFocus<HTMLElement>(id, returnFocusTo);
 
   return (
     <aside
@@ -50,6 +34,11 @@ export function DetailsPanel({ id, onClose, returnFocusTo }: DetailsPanelProps) 
       <button type="button" className="details-panel__close" aria-label="Close details" title="Close details" onClick={onClose}>
         ×
       </button>
+      {onBack !== undefined && (
+        <button type="button" className="panel-back" onClick={onBack}>
+          <span aria-hidden="true">‹ </span>Back to list
+        </button>
+      )}
       {details.isPending && <p role="status">Loading…</p>}
       {details.isError && <p role="alert" className="details-panel__error">{details.error.message}</p>}
       {details.isSuccess && <Details {...details.data} />}

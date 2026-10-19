@@ -417,3 +417,44 @@ body,
 .details-panel__links a {
   color: var(--accent);
 }
+
+.panel-back {
+  margin: 0 0 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.nearby-list {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.nearby-list__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nearby-list__item:hover,
+.nearby-list__item:focus-visible {
+  background: rgb(255 255 255 / 6%);
+}
+
+.nearby-list__when {
+  color: var(--text-muted);
+  font-size: 13px;
+}

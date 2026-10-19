@@ -175,6 +175,25 @@ describe("DetailsPanel", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("has no Back to list button without onBack", async () => {
+    serveDetails();
+    renderPanel(caesarDetails.event.id);
+    await title("Julius Caesar");
+    expect(screen.queryByRole("button", { name: "Back to list" })).not.toBeInTheDocument();
+  });
+
+  it("calls onBack, not onClose, from the Back to list button", async () => {
+    const user = userEvent.setup();
+    serveDetails();
+    const onBack = vi.fn();
+    const onClose = vi.fn();
+    render(<DetailsPanel id={caesarDetails.event.id} onClose={onClose} onBack={onBack} />, { wrapper: createQueryWrapper() });
+    await title("Julius Caesar");
+    await user.click(within(panel()).getByRole("button", { name: "Back to list" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("calls onClose on Escape while focus is inside the panel", async () => {
     const user = userEvent.setup();
     serveDetails();

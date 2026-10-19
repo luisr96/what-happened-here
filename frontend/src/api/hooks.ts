@@ -19,7 +19,16 @@ export type EventsQuery = {
   readonly limit?: number;
 };
 
-export type NearbyQuery = { readonly lat: number; readonly lon: number; readonly radius: number };
+/** A clicked spot plus the same optional filters as /events (absent ones aren't sent). */
+export type NearbyQuery = {
+  readonly lat: number;
+  readonly lon: number;
+  readonly radius: number;
+  readonly from?: number;
+  readonly to?: number;
+  readonly kinds?: readonly Kind[];
+  readonly minImportance?: number;
+};
 
 // Query keys hold plain values, so TanStack compares them by value: a new object with equal
 // values is the same query and doesn't refetch. Every queryFn passes TanStack's `signal` on,

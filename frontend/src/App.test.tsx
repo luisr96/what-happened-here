@@ -14,6 +14,7 @@ import {
   eventsPage,
   fijiFounded,
   lisbonEarthquake,
+  mozartBorn,
   mozartDetailsNoWikipedia,
   otherEventsPage,
   problemJson,
@@ -26,16 +27,24 @@ type MapViewProps = {
   readonly onViewportChange: (bbox: Bbox) => void;
   readonly selectedId?: string | null;
   readonly onSelect?: (id: string) => void;
+  readonly onPlaceClick?: (place: Place) => void;
+  readonly place?: Place | null;
 };
+
+type Place = { lat: number; lon: number; radius: number };
 
 const mapView = vi.hoisted(() => ({
   onViewportChange: null as ((bbox: Bbox) => void) | null,
   onSelect: null as ((id: string) => void) | null,
   selectedId: undefined as string | null | undefined,
+  onPlaceClick: null as ((place: { lat: number; lon: number; radius: number }) => void) | null,
+  place: undefined as { lat: number; lon: number; radius: number } | null | undefined,
 }));
 
 vi.mock("./map/MapView", () => ({
-  MapView: ({ events, onViewportChange, selectedId, onSelect }: MapViewProps) => {
+  MapView: ({ events, onViewportChange, selectedId, onSelect, onPlaceClick, place }: MapViewProps) => {
+    mapView.onPlaceClick = onPlaceClick ?? null;
+    mapView.place = place;
     mapView.onViewportChange = onViewportChange;
     mapView.onSelect = onSelect ?? null;
     mapView.selectedId = selectedId;
@@ -69,6 +78,8 @@ function renderApp() {
   mapView.onViewportChange = null;
   mapView.onSelect = null;
   mapView.selectedId = undefined;
+  mapView.onPlaceClick = null;
+  mapView.place = undefined;
   return render(<App />, { wrapper: createQueryWrapper() });
 }
 
@@ -471,5 +482,178 @@ describe("App details panel", () => {
 
     const panel = await screen.findByRole("complementary", { name: "Event details" });
     expect(await within(panel).findByRole("alert")).toHaveTextContent("No event Q999:BORN");
+  });
+});
+
+const rome: Place = { lat: 41.9, lon: 12.5, radius: 2293 };
+const nearbyPage = { events: [caesarDied, mozartBorn], truncated: false };
+const nearbyPanel = () => screen.queryByRole("complementary", { name: "What happened here" });
+
+function recordNearby() {
+  const urls: URL[] = [];
+  server.use(http.get("*/api/places/nearby", ({ request }) => {
+    urls.push(new URL(request.url));
+    return HttpResponse.json(nearbyPage);
+  }));
+  return urls;
+}
+
+function clickPlace(place: Place) {
+  const click = mapView.onPlaceClick;
+  if (click === null) throw new Error("MapView was not given onPlaceClick");
+  act(() => click(place));
+}
+
+async function openNearby() {
+  recordEvents();
+  recordDetails();
+  const nearbyUrls = recordNearby();
+  renderApp();
+  reportViewport(europe);
+  clickPlace(rome);
+  const panel = await screen.findByRole("complementary", { name: "What happened here" });
+  return { panel, nearbyUrls };
+}
+
+async function listItem(name: RegExp) {
+  const panel = nearbyPanel();
+  if (panel === null) throw new Error("nearby panel is not open");
+  return within(await within(panel).findByRole("list")).findByRole("button", { name });
+}
+
+describe("App what happened here", () => {
+  it("passes no place to the map before a click", () => {
+    recordEvents();
+    renderApp();
+    expect(mapView.place ?? null).toBeNull();
+    expect(nearbyPanel()).not.toBeInTheDocument();
+  });
+
+  it("opens the nearby panel for a clicked empty spot and draws the place on the map", async () => {
+    const { panel, nearbyUrls } = await openNearby();
+
+    expect(await within(panel).findByRole("button", { name: /^Julius Caesar/ })).toBeInTheDocument();
+    expect(mapView.place).toEqual(rome);
+    expect(mapView.selectedId ?? null).toBeNull();
+    const q = nearbyUrls[0]?.searchParams;
+    expect(Number(q?.get("lat"))).toBe(41.9);
+    expect(Number(q?.get("lon"))).toBe(12.5);
+    expect(q?.get("radius")).toBe("2293");
+  });
+
+  it("sends no filters with the nearby request by default", async () => {
+    const { nearbyUrls } = await openNearby();
+    await waitFor(() => expect(nearbyUrls).toHaveLength(1));
+    const q = nearbyUrls[0]?.searchParams;
+    for (const name of ["kinds", "minImportance", "from", "to"]) expect(q?.has(name)).toBe(false);
+  });
+
+  it("sends the current kinds, minImportance and time range with the nearby request", async () => {
+    const user = userEvent.setup();
+    recordTimeline();
+    recordEvents();
+    recordDetails();
+    const nearbyUrls = recordNearby();
+    renderApp();
+    reportViewport(europe);
+    await timelineLoaded();
+
+    await user.click(screen.getByRole("checkbox", { name: "Born" }));
+    fireEvent.change(screen.getByRole("slider", { name: "Covered in at least" }), { target: { value: "20" } });
+    fireEvent.keyDown(fromSlider(), { key: "ArrowRight" });
+    await sleep(400);
+
+    clickPlace(rome);
+    await waitFor(() => expect(nearbyUrls.length).toBeGreaterThan(0));
+    const q = nearbyUrls.at(-1)?.searchParams;
+    expect(q?.get("kinds")).toBe("HAPPENED,DIED,FOUNDED,ENDED,OPENED");
+    expect(q?.get("minImportance")).toBe("20");
+    expect(q?.get("from")).toBe("-49");
+    expect(q?.get("to")).toBe("2029");
+  });
+
+  it("opens details from a list item with Back to list, keeping the place circle", async () => {
+    const user = userEvent.setup();
+    await openNearby();
+
+    await user.click(await listItem(/^Julius Caesar/));
+
+    const details = await screen.findByRole("complementary", { name: "Event details" });
+    expect(await within(details).findByRole("heading", { level: 2, name: "Julius Caesar" })).toBeInTheDocument();
+    expect(nearbyPanel()).not.toBeInTheDocument();
+    expect(mapView.selectedId).toBe("Q1048:DIED");
+    expect(mapView.place).toEqual(rome);
+    expect(within(details).getByRole("button", { name: "Back to list" })).toBeInTheDocument();
+  });
+
+  it("returns to the same place's list with Back to list", async () => {
+    const user = userEvent.setup();
+    const { nearbyUrls } = await openNearby();
+    await user.click(await listItem(/^Q254/));
+    await screen.findByRole("heading", { level: 2, name: "Q254" });
+
+    await user.click(screen.getByRole("button", { name: "Back to list" }));
+
+    expect(await listItem(/^Julius Caesar/)).toBeInTheDocument();
+    expect(detailsPanel()).not.toBeInTheDocument();
+    expect(mapView.place).toEqual(rome);
+    expect(mapView.selectedId ?? null).toBeNull();
+    expect(nearbyUrls.every((u) => u.searchParams.get("radius") === "2293")).toBe(true);
+  });
+
+  it("replaces the nearby panel with details, without Back to list, when a point is clicked", async () => {
+    await openNearby();
+    await listItem(/^Julius Caesar/);
+
+    selectEvent(caesarDied.id);
+
+    const details = await screen.findByRole("complementary", { name: "Event details" });
+    await within(details).findByRole("heading", { level: 2, name: "Julius Caesar" });
+    expect(nearbyPanel()).not.toBeInTheDocument();
+    expect(within(details).queryByRole("button", { name: "Back to list" })).not.toBeInTheDocument();
+    expect(mapView.place ?? null).toBeNull();
+    expect(mapView.selectedId).toBe("Q1048:DIED");
+  });
+
+  it("replaces open details with the nearby panel on an empty-spot click", async () => {
+    recordEvents();
+    recordDetails();
+    recordNearby();
+    renderApp();
+    reportViewport(europe);
+    selectEvent(caesarDied.id);
+    await screen.findByRole("heading", { level: 2, name: "Julius Caesar" });
+
+    clickPlace(rome);
+
+    expect(await screen.findByRole("complementary", { name: "What happened here" })).toBeInTheDocument();
+    expect(detailsPanel()).not.toBeInTheDocument();
+    expect(mapView.selectedId ?? null).toBeNull();
+    expect(mapView.place).toEqual(rome);
+  });
+
+  it("clears the place when the nearby panel is closed", async () => {
+    const user = userEvent.setup();
+    const { panel } = await openNearby();
+
+    await user.click(within(panel).getByRole("button", { name: "Close" }));
+
+    await waitFor(() => expect(nearbyPanel()).not.toBeInTheDocument());
+    expect(mapView.place ?? null).toBeNull();
+    expect(mapView.selectedId ?? null).toBeNull();
+  });
+
+  it("clears selection and place when details opened from the list are closed", async () => {
+    const user = userEvent.setup();
+    await openNearby();
+    await user.click(await listItem(/^Julius Caesar/));
+    await screen.findByRole("heading", { level: 2, name: "Julius Caesar" });
+
+    await user.click(screen.getByRole("button", { name: "Close details" }));
+
+    await waitFor(() => expect(detailsPanel()).not.toBeInTheDocument());
+    expect(nearbyPanel()).not.toBeInTheDocument();
+    expect(mapView.place ?? null).toBeNull();
+    expect(mapView.selectedId ?? null).toBeNull();
   });
 });

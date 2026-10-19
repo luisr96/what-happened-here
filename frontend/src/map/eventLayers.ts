@@ -2,6 +2,7 @@ import type { Layer } from "@deck.gl/core";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import type { EventView } from "../api/hooks";
 import { kindColor } from "./kinds";
+import type { Place } from "./nearby";
 
 const MIN_RADIUS_PX = 2;
 const MAX_RADIUS_PX = 10;
@@ -89,5 +90,23 @@ export function selectionLayer(selected: EventView | null): Layer {
     getRadius: (e) => (e.approximate ? haloRadiusPx(e.importance) : radiusPx(e.importance)) + RING_GAP_PX,
     getLineColor: RING_COLOR,
     getLineWidth: RING_WIDTH_PX,
+  });
+}
+
+/** The area a "what happened here" click searched: a faint disc of its radius in metres. */
+export function placeLayer(place: Place | null): Layer {
+  return new ScatterplotLayer<Place>({
+    id: "nearby-area",
+    data: place === null ? [] : [place],
+    pickable: false,
+    stroked: true,
+    filled: true,
+    radiusUnits: "meters",
+    lineWidthUnits: "pixels",
+    getPosition: (p) => [p.lon, p.lat],
+    getRadius: (p) => p.radius,
+    getFillColor: [255, 255, 255, 18],
+    getLineColor: [255, 255, 255, 110],
+    getLineWidth: 1,
   });
 }

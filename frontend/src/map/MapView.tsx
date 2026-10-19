@@ -6,7 +6,8 @@ import { Map, useControl } from "react-map-gl/maplibre";
 import type { Bbox } from "../api/client";
 import type { EventView } from "../api/hooks";
 import { viewportToBbox } from "./bbox";
-import { pointLayers, selectionLayer } from "./eventLayers";
+import { placeLayer, pointLayers, selectionLayer } from "./eventLayers";
+import { clickRadiusMetres, type Place } from "./nearby";
 import { tooltipText } from "./tooltip";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
@@ -32,6 +33,10 @@ export type MapViewProps = {
    */
   readonly selectedEvent?: EventView | null;
   readonly onSelect: (id: string) => void;
+  /** A click where no event is: "what happened here" around that spot. */
+  readonly onPlaceClick: (place: Place) => void;
+  /** The area being listed, drawn as a faint disc; null when none. */
+  readonly place: Place | null;
   /** The map region, focusable from script (e.g. when the details panel closes). */
   readonly ref?: Ref<HTMLElement>;
 };
@@ -59,7 +64,9 @@ function tooltip({ object }: PickingInfo<EventView>) {
   }
 }
 
-export function MapView({ events, onViewportChange, selectedId, selectedEvent, onSelect, ref }: MapViewProps) {
+export function MapView({
+  events, onViewportChange, selectedId, selectedEvent, onSelect, onPlaceClick, place, ref,
+}: MapViewProps) {
   // Busy until MapLibre's load event, which fires once the style has loaded.
   const [loaded, setLoaded] = useState(false);
   // Memoized so deck.gl sees the same layers between renders and doesn't re-diff its data.
@@ -67,7 +74,9 @@ export function MapView({ events, onViewportChange, selectedId, selectedEvent, o
   const points = useMemo(() => pointLayers(events), [events]);
   const selected = selectedEvent ?? (selectedId === null ? null : events.find((e) => e.id === selectedId) ?? null);
   const ring = useMemo(() => selectionLayer(selected), [selected]);
-  const layers = useMemo(() => [...points, ring], [points, ring]);
+  const area = useMemo(() => placeLayer(place), [place]);
+  // The searched area lies under the points so they stay hoverable and clickable inside it.
+  const layers = useMemo(() => [area, ...points, ring], [area, points, ring]);
 
   // Reported once loaded and then after each pan or zoom ends, not on every animation frame.
   const report = (map: { getBounds(): LngLatBounds }) => {
@@ -98,8 +107,16 @@ export function MapView({ events, onViewportChange, selectedId, selectedEvent, o
         <DeckOverlay
           layers={layers}
           getTooltip={tooltip}
-          onClick={({ object }: PickingInfo<EventView>) => {
-            if (object !== undefined) onSelect(object.id);
+          onClick={({ object, coordinate, viewport }: PickingInfo<EventView>) => {
+            if (object !== undefined) {
+              onSelect(object.id);
+            } else if (coordinate !== undefined && viewport !== undefined) {
+              const [lon, lat] = coordinate;
+              if (lon === undefined || lat === undefined) return;
+              // Past the antimeridian the map reports longitudes beyond ±180; the API wants -180..180.
+              const wrapped = ((((lon + 180) % 360) + 360) % 360) - 180;
+              onPlaceClick({ lat, lon: wrapped, radius: clickRadiusMetres(lat, viewport.zoom) });
+            }
           }}
         />
       </Map>

@@ -449,6 +449,54 @@ describe("useNearby", () => {
   });
 });
 
+describe("useNearby filters", () => {
+  function serveNearby() {
+    const rec = recorder();
+    server.use(
+      http.get("*/api/places/nearby", ({ request }) => {
+        rec.record(request);
+        return HttpResponse.json(eventsPage);
+      }),
+    );
+    return rec;
+  }
+
+  it("sends from, to (BC as negative), kinds and minImportance when given", async () => {
+    const rec = serveNearby();
+    const { result } = renderHook(
+      () => useNearby({ lat: 41.9, lon: 12.5, radius: 2293, from: -44, to: 14, kinds: ["BORN", "DIED"], minImportance: 20 }),
+      { wrapper: createQueryWrapper() },
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const q = rec.requests[0]?.url.searchParams;
+    expect(q?.get("from")).toBe("-44");
+    expect(q?.get("to")).toBe("14");
+    expect(q?.get("kinds")).toBe("BORN,DIED");
+    expect(q?.get("minImportance")).toBe("20");
+    expect(q?.get("radius")).toBe("2293");
+  });
+
+  it("sends only lat, lon and radius when no filter is given", async () => {
+    const rec = serveNearby();
+    const { result } = renderHook(() => useNearby({ lat: 0, lon: 0, radius: 100 }), { wrapper: createQueryWrapper() });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect([...(rec.requests[0]?.url.searchParams.keys() ?? [])].sort()).toEqual(["lat", "lon", "radius"]);
+  });
+
+  it("refetches when only a filter changes", async () => {
+    const rec = serveNearby();
+    type Q = Parameters<typeof useNearby>[0];
+    const { rerender } = renderHook(({ q }: { q: Q }) => useNearby(q), {
+      initialProps: { q: { lat: 0, lon: 0, radius: 100 } as Q },
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(rec.requests).toHaveLength(1));
+    rerender({ q: { lat: 0, lon: 0, radius: 100, minImportance: 5 } });
+    await waitFor(() => expect(rec.requests).toHaveLength(2));
+    expect(rec.requests[1]?.url.searchParams.get("minImportance")).toBe("5");
+  });
+});
+
 describe("useEvent", () => {
   const detail = caesarDetails;
 
