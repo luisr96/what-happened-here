@@ -19,9 +19,9 @@ paths:
 - Function components and hooks only. One component per file, named like the file.
 - Small, focused components: a component either fetches/holds state or renders props, not both.
   Map layers, the time slider, and the details panel are separate components.
-- Data fetching lives in hooks (`useEvents`, `useTimeline`, ...) that return a union state
-  (`loading | error | ready`), never in render code. Cancel stale requests (`AbortController`)
-  when the viewport or time range changes.
+- Data fetching lives in hooks (`useEvents`, `useTimeline`, ...) built on TanStack Query, never
+  in render code. Query keys are built from values; pass the query's `signal` to `fetch` so
+  stale requests are cancelled when the viewport or time range changes.
 - Derive values instead of storing them in state; `useMemo`/`useCallback` only for a measured
   cost or a stable identity a dependency needs (e.g. deck.gl layer props).
 - Historic dates are never JavaScript `Date`s: format from `{year, month, day, precision,

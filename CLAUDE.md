@@ -123,7 +123,8 @@ periodic full re-import from a fresh dump is the safety net.
 - Dark, collapsible left side panel: filters (kinds, minimum importance) and layer options.
 - Time bar along the bottom: the /stats/timeline histogram, a draggable range that sets from/to,
   and a play button that animates the range forward through time.
-- Plain React state and data hooks; no global store.
+- Server data through TanStack Query (caching, cancelling stale requests, keeping previous
+  data while panning); UI state in plain React state; no global store.
 
 ## Testing strategy (fail fast)
 1. Test cases: ~50 hand-picked entities saved as JSON, each with its expected events; unit tests.
