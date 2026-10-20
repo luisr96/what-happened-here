@@ -13,10 +13,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.infrastructure.item.ExecutionContext;
 import org.springframework.batch.infrastructure.item.ItemStreamException;
 import org.springframework.batch.infrastructure.item.ItemStreamReader;
-import tools.jackson.databind.JsonNode;
 
 /**
- * Reads dump entities for the extract step and survives two kinds of interruption:
+ * Reads dump entities for the extract step as unparsed lines, so the parsing (most of the
+ * work) happens in the processor, on several threads. Survives two kinds of interruption:
  * <ul>
  *   <li>a dropped connection: reopen from the start and skip the entities already returned
  *       (a gzip stream can't be entered in the middle), waiting twice as long after each failed
@@ -25,11 +25,11 @@ import tools.jackson.databind.JsonNode;
  *   <li>a crashed run: Spring Batch saves {@code entities.read} with every committed chunk, and a
  *       restart skips that many before reading on.</li>
  * </ul>
- * Entities are counted after DumpReader's parsing, so malformed lines never shift the count.
- * Skipping still decompresses and tokenizes everything before the resume point: late in the full
- * dump that is hours, the price of a format that can only be read from the start.
+ * Counts are in entity lines, malformed ones included (the processor drops those). Skipping
+ * still decompresses everything before the resume point: late in the full dump that is an hour or
+ * more, the price of a format that can only be read from the start.
  */
-public class DumpEntityReader implements ItemStreamReader<JsonNode> {
+public class DumpEntityReader implements ItemStreamReader<String> {
 
     static final String READ_KEY = "entities.read";
     static final Duration MAX_DELAY = Duration.ofMinutes(10);
@@ -43,8 +43,8 @@ public class DumpEntityReader implements ItemStreamReader<JsonNode> {
     private final Duration reconnectDelay;
 
     private long read;
-    private Stream<JsonNode> stream;
-    private Iterator<JsonNode> entities;
+    private Stream<String> stream;
+    private Iterator<String> entities;
 
     /**
      * @param limit total entities to return, counting ones skipped on restart; {@code <= 0}: all
@@ -75,7 +75,7 @@ public class DumpEntityReader implements ItemStreamReader<JsonNode> {
     }
 
     @Override
-    public JsonNode read() {
+    public String read() {
         if (limit > 0 && read >= limit) {
             return null;
         }
@@ -88,7 +88,7 @@ public class DumpEntityReader implements ItemStreamReader<JsonNode> {
                 if (!entities.hasNext()) {
                     return null;
                 }
-                JsonNode entity = entities.next();
+                String entity = entities.next();
                 read++;
                 return entity;
             } catch (IOException | UncheckedIOException e) {
@@ -111,7 +111,7 @@ public class DumpEntityReader implements ItemStreamReader<JsonNode> {
     private void connect() throws IOException {
         disconnect();
         InputStream in = opener.open(source);
-        stream = new DumpReader(in, Long.MAX_VALUE).entities(read);
+        stream = new DumpReader(in, Long.MAX_VALUE).entityLines(read);
         entities = stream.iterator();
     }
 

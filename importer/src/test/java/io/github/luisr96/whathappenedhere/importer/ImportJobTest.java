@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.within;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,11 +38,14 @@ import org.testcontainers.utility.DockerImageName;
  * Resolved: events Q1:FOUNDED, Q2:BORN, Q3:HAPPENED, Q5:BORN; places Q90, Q91.
  *
  * <p>Chunk size 2: the restart test's failure after five entities lands after two committed chunks.
+ * Four threads: every job here, including the restart and kill-recovery runs compared against an
+ * uninterrupted one, processes the items of each chunk concurrently.
  */
 @SpringBootTest(properties = {
     "import.chunk-size=2",
     "import.max-reconnects=1",
     "import.reconnect-delay=0s",
+    "import.threads=4",
 })
 class ImportJobTest {
 
@@ -371,6 +375,66 @@ class ImportJobTest {
         var row = event("Q8:HAPPENED");
         assertThat(row.get("label")).isEqualTo("Say \"hi\", then\nleave \\ now");
         assertThat(row.get("wiki_title")).isEqualTo("Tricky, \"quoted\"");
+    }
+
+    @Test
+    void concurrentProcessingGivesTheSameRowsOnEveryRun() {
+        var large = largeFixture();
+        importService.run(opener.register(large), 0);
+        var firstEvents = eventRows();
+        var firstPlaces = placeRows();
+        var firstCells = cellRows();
+
+        importService.run(opener.register(large), 0);
+
+        assertThat(eventRows()).isEqualTo(firstEvents);
+        assertThat(placeRows()).isEqualTo(firstPlaces);
+        assertThat(cellRows()).isEqualTo(firstCells);
+    }
+
+    @Test
+    void concurrentProcessingLosesAndMixesUpNoEntity() {
+        importService.run(opener.register(largeFixture()), 0);
+
+        assertThat(eventIds()).hasSize(LARGE_BATTLES + LARGE_PEOPLE);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM places", Long.class)).isEqualTo(LARGE_PEOPLE);
+        for (int i = 1; i <= LARGE_BATTLES; i++) {
+            var row = event("Q" + (1000 + i) + ":HAPPENED");
+            assertThat(row.get("year")).as("Q%d", 1000 + i).isEqualTo((long) (1000 + i));
+            assertThat((Double) row.get("lat")).as("Q%d", 1000 + i).isCloseTo(i * 0.5 - 30, within(EPS));
+            assertThat(row.get("label")).isEqualTo("Label Q" + (1000 + i));
+        }
+        for (int i = 1; i <= LARGE_PEOPLE; i++) {
+            var row = event("Q" + (2000 + i) + ":BORN");
+            assertThat(row.get("place_qid")).isEqualTo("Q" + (3000 + i));
+            assertThat((Double) row.get("lon")).as("Q%d", 2000 + i).isCloseTo(i * 0.25, within(EPS));
+        }
+        assertThat(timelineSum(0)).isEqualTo(LARGE_BATTLES + LARGE_PEOPLE);
+    }
+
+    private static final int LARGE_BATTLES = 120;
+    private static final int LARGE_PEOPLE = 40;
+
+    /**
+     * 200 entities so that chunks overlap on several threads: battles Q1001.. with their own
+     * coordinates and year 1000+i, people Q2001.. born in Q3001.., and those places after them.
+     */
+    private static List<String> largeFixture() {
+        var lines = new ArrayList<String>();
+        for (int i = 1; i <= LARGE_BATTLES; i++) {
+            lines.add(item("Q" + (1000 + i), enwiki("Battle " + i), claims(
+                    claim("P585", time("P585", "+%04d-01-01T00:00:00Z".formatted(1000 + i), 9)),
+                    claim("P625", coords(i * 0.5 - 30, i * 0.5, 0.001)))));
+        }
+        for (int i = 1; i <= LARGE_PEOPLE; i++) {
+            lines.add(item("Q" + (2000 + i), enwiki("Person " + i), claims(
+                    claim("P569", time("P569", "+%04d-01-01T00:00:00Z".formatted(1500 + i), 9)),
+                    claim("P19", ref("P19", "Q" + (3000 + i))))));
+        }
+        for (int i = 1; i <= LARGE_PEOPLE; i++) {
+            lines.add(item("Q" + (3000 + i), "", claim("P625", coords(i * 0.1, i * 0.25, 0.0001))));
+        }
+        return List.copyOf(lines);
     }
 
     private List<String> eventIds() {

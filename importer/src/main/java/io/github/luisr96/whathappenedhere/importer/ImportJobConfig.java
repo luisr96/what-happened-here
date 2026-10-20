@@ -23,8 +23,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
-import tools.jackson.databind.JsonNode;
 
 /**
  * The import job (CLAUDE.md, Importer flow), in four steps:
@@ -70,15 +70,32 @@ public class ImportJobConfig {
 
     @Bean
     Step extract(JobRepository jobs, PlatformTransactionManager transactions,
-            DumpEntityReader reader, DataSource dataSource,
+            DumpEntityReader reader, DataSource dataSource, ThreadPoolTaskExecutor extractThreads,
             @Value("${import.chunk-size:1000}") int chunkSize) {
         return new StepBuilder("extract", jobs)
-                .<JsonNode, ImportRecord>chunk(chunkSize)
+                .<String, ImportRecord>chunk(chunkSize)
                 .transactionManager(transactions)
+                .taskExecutor(extractThreads)
                 .reader(reader)
                 .processor(new EntityProcessor(new WikidataExtractor(Clock.systemUTC())))
                 .writer(new StagingWriter(dataSource))
                 .build();
+    }
+
+    /**
+     * Parses and extracts the items of each chunk in parallel. Reading stays on one thread and
+     * Spring Batch waits for the whole chunk before writing it, so rows and checkpoint still commit
+     * together. Being an Executor bean, it also replaces Spring Boot's default task executor, which
+     * nothing else in the importer uses.
+     */
+    @Bean
+    ThreadPoolTaskExecutor extractThreads(
+            @Value("${import.threads:#{T(java.lang.Runtime).getRuntime().availableProcessors()}}") int threads) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(threads);
+        executor.setMaxPoolSize(threads);
+        executor.setThreadNamePrefix("extract-");
+        return executor;
     }
 
     @Bean

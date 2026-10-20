@@ -26,6 +26,7 @@ import org.testcontainers.utility.DockerImageName;
     "import.chunk-size=2",
     "import.max-reconnects=1",
     "import.reconnect-delay=0s",
+    "import.threads=4",
 })
 class ImportReportStepTest {
 

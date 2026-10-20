@@ -5,7 +5,6 @@ import static io.github.luisr96.whathappenedhere.importer.Entities.claims;
 import static io.github.luisr96.whathappenedhere.importer.Entities.coords;
 import static io.github.luisr96.whathappenedhere.importer.Entities.enwiki;
 import static io.github.luisr96.whathappenedhere.importer.Entities.item;
-import static io.github.luisr96.whathappenedhere.importer.Entities.json;
 import static io.github.luisr96.whathappenedhere.importer.Entities.ref;
 import static io.github.luisr96.whathappenedhere.importer.Entities.time;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,9 +20,9 @@ class EntityProcessorTest {
 
     @Test
     void itemWithEventsButNoCoordinatesYieldsOnlyTheItem() throws Exception {
-        var entity = json(item("Q2", enwiki("Someone"), claims(
+        var entity = item("Q2", enwiki("Someone"), claims(
                 claim("P569", time("P569", "+1850-03-04T00:00:00Z", 11)),
-                claim("P19", ref("P19", "Q90")))));
+                claim("P19", ref("P19", "Q90"))));
 
         var record = processor.process(entity);
 
@@ -37,7 +36,7 @@ class EntityProcessorTest {
 
     @Test
     void entityWithCoordinatesButNoSitelinkYieldsAPlaceOnlyRecord() throws Exception {
-        var entity = json(item("Q90", "", claim("P625", coords(48.8566, 2.3522, 0.0001))));
+        var entity = item("Q90", "", claim("P625", coords(48.8566, 2.3522, 0.0001)));
 
         var record = processor.process(entity);
 
@@ -51,7 +50,7 @@ class EntityProcessorTest {
 
     @Test
     void sitelinkedPlaceWithoutDatesYieldsAPlaceOnlyRecord() throws Exception {
-        var entity = json(item("Q91", enwiki("Some town"), claim("P625", coords(10.0, 20.0, 0.01))));
+        var entity = item("Q91", enwiki("Some town"), claim("P625", coords(10.0, 20.0, 0.01)));
 
         var record = processor.process(entity);
 
@@ -62,9 +61,9 @@ class EntityProcessorTest {
 
     @Test
     void itemWithEventsAndCoordinatesYieldsBoth() throws Exception {
-        var entity = json(item("Q1", enwiki("Some building"), claims(
+        var entity = item("Q1", enwiki("Some building"), claims(
                 claim("P571", time("P571", "+1900-01-01T00:00:00Z", 11)),
-                claim("P625", coords(48.5, 2.25, 0.0001)))));
+                claim("P625", coords(48.5, 2.25, 0.0001))));
 
         var record = processor.process(entity);
 
@@ -78,14 +77,14 @@ class EntityProcessorTest {
 
     @Test
     void entityWithNeitherEventsNorCoordinatesIsFilteredOut() throws Exception {
-        var entity = json(item("Q4", enwiki("Abstract idea"), ""));
+        var entity = item("Q4", enwiki("Abstract idea"), "");
 
         assertThat(processor.process(entity)).isNull();
     }
 
     @Test
     void unsitelinkedEntityWithDatesButNoCoordinatesIsFilteredOut() throws Exception {
-        var entity = json(item("Q6", "", claim("P569", time("P569", "+1850-03-04T00:00:00Z", 11))));
+        var entity = item("Q6", "", claim("P569", time("P569", "+1850-03-04T00:00:00Z", 11)));
 
         assertThat(processor.process(entity)).isNull();
     }
@@ -93,7 +92,7 @@ class EntityProcessorTest {
     @Test
     void futureOnlyDatesWithoutCoordinatesAreFilteredOut() throws Exception {
         // Fixed clock: 2026-10-18, so a 2030 inception is a future date and yields no event.
-        var entity = json(item("Q7", enwiki("Planned thing"), claim("P571", time("P571", "+2030-01-01T00:00:00Z", 11))));
+        var entity = item("Q7", enwiki("Planned thing"), claim("P571", time("P571", "+2030-01-01T00:00:00Z", 11)));
 
         assertThat(processor.process(entity)).isNull();
     }
@@ -105,13 +104,34 @@ class EntityProcessorTest {
                 "longitude":-11.2,"altitude":null,"precision":0.01,\
                 "globe":"http://www.wikidata.org/entity/Q405"},"type":"globecoordinate"},\
                 "datatype":"globe-coordinate"},"type":"statement","rank":"normal"}""";
-        var entity = json(item("Q8", "", claim("P625", lunar)));
+        var entity = item("Q8", "", claim("P625", lunar));
 
         assertThat(processor.process(entity)).isNull();
     }
 
     @Test
     void propertyEntitiesAreFilteredOut() throws Exception {
-        assertThat(processor.process(json("{\"type\":\"property\",\"id\":\"P31\"}"))).isNull();
+        assertThat(processor.process("{\"type\":\"property\",\"id\":\"P31\"}")).isNull();
+    }
+
+    @Test
+    void malformedTextIsFilteredOutRatherThanThrown() throws Exception {
+        assertThat(processor.process("{\"type\":\"item\",\"id\":\"Q1\",\"broken")).isNull();
+    }
+
+    @Test
+    void jsonArrayIsFilteredOut() throws Exception {
+        assertThat(processor.process("[1,2]")).isNull();
+    }
+
+    @Test
+    void jsonScalarIsFilteredOut() throws Exception {
+        assertThat(processor.process("\"just a string\"")).isNull();
+        assertThat(processor.process("42")).isNull();
+    }
+
+    @Test
+    void emptyTextIsFilteredOut() throws Exception {
+        assertThat(processor.process("")).isNull();
     }
 }

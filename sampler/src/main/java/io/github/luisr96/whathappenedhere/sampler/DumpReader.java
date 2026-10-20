@@ -11,8 +11,6 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import tools.jackson.core.JacksonException;
-import tools.jackson.core.JsonParser;
-import tools.jackson.core.JsonToken;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -24,6 +22,7 @@ import tools.jackson.databind.ObjectMapper;
 public final class DumpReader {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final int BUFFER = 64 * 1024;
 
     private final InputStream gzipped;
     private final long limit;
@@ -40,21 +39,28 @@ public final class DumpReader {
      * which also aborts an HTTP download early.
      */
     public Stream<JsonNode> entities() {
-        return entities(0);
+        return lines()
+                .map(this::parse)
+                .filter(Objects::nonNull)
+                .limit(limit);
     }
 
     /**
-     * Like {@link #entities()}, after passing over the first {@code skip} entities without
-     * building them (resuming a long import). Each skipped line is still checked to be exactly one
-     * JSON object, so the count matches what {@link #entities()} would have returned; that check
-     * streams through the tokens, much cheaper than building the tree. {@code limit} counts the
-     * entities returned after the skip.
+     * The entities as unparsed text, after passing over the first {@code skip}: every line except
+     * blank ones and the array's brackets counts, valid JSON or not, so skipping costs only
+     * decompression. For callers that parse elsewhere (the importer parses on several threads);
+     * {@code limit} counts the lines returned after the skip.
      */
-    public Stream<JsonNode> entities(long skip) {
+    public Stream<String> entityLines(long skip) {
+        return lines().skip(skip).limit(limit);
+    }
+
+    /** Entity lines without their trailing commas; closing the stream closes the input. */
+    private Stream<String> lines() {
         BufferedReader lines;
         try {
-            lines = new BufferedReader(
-                    new InputStreamReader(new NoReadAhead(new GZIPInputStream(gzipped)), StandardCharsets.UTF_8));
+            lines = new BufferedReader(new InputStreamReader(
+                    new NoReadAhead(new GZIPInputStream(gzipped, BUFFER)), StandardCharsets.UTF_8), BUFFER);
         } catch (IOException notGzip) {
             try {
                 gzipped.close();
@@ -63,20 +69,9 @@ public final class DumpReader {
             }
             throw new UncheckedIOException(notGzip);
         }
-        long[] toSkip = {skip};
         return lines.lines()
                 .map(DumpReader::entityText)
                 .filter(Objects::nonNull)
-                .filter(entity -> {
-                    if (toSkip[0] > 0 && isOneObject(entity)) {
-                        toSkip[0]--;
-                        return false;
-                    }
-                    return true;
-                })
-                .map(this::parse)
-                .filter(Objects::nonNull)
-                .limit(limit)
                 .onClose(() -> {
                     try {
                         lines.close();
@@ -103,30 +98,25 @@ public final class DumpReader {
         return entity;
     }
 
-    /** Whether {@link #parse} would accept the text, checked without building the tree. */
-    private static boolean isOneObject(String entity) {
-        try (JsonParser parser = MAPPER.createParser(entity)) {
-            if (parser.nextToken() != JsonToken.START_OBJECT) {
-                return false;
-            }
-            parser.skipChildren();
-            return parser.nextToken() == null;
+    /**
+     * One entity line (as {@link #entityLines} returns it) parsed, or null when it isn't a JSON
+     * object. The one definition of "an entity" for everything that reads the dump.
+     */
+    public static JsonNode parseEntity(String line) {
+        try {
+            JsonNode node = MAPPER.readTree(line);
+            return node != null && node.isObject() ? node : null;
         } catch (JacksonException malformed) {
-            return false;
+            return null;
         }
     }
 
     private JsonNode parse(String entity) {
-        try {
-            JsonNode node = MAPPER.readTree(entity);
-            if (node.isObject()) {
-                return node;
-            }
-        } catch (JacksonException malformed) {
-            // Counted below: one bad line costs one entity, not the run.
+        JsonNode node = parseEntity(entity);
+        if (node == null) {
+            malformedLines++; // one bad line costs one entity, not the run
         }
-        malformedLines++;
-        return null;
+        return node;
     }
 
     /**

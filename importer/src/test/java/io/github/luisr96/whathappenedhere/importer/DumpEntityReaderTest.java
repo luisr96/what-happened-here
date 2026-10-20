@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.infrastructure.item.ExecutionContext;
-import tools.jackson.databind.JsonNode;
 
 class DumpEntityReaderTest {
 
@@ -48,11 +47,21 @@ class DumpEntityReaderTest {
 
     private static List<String> readAll(DumpEntityReader reader) throws Exception {
         var ids = new ArrayList<String>();
-        JsonNode entity;
-        while ((entity = reader.read()) != null) {
-            ids.add(entity.path("id").asString());
+        String line;
+        while ((line = reader.read()) != null) {
+            ids.add(id(line));
         }
         return ids;
+    }
+
+    /** The entity's id, or the raw text for a line that isn't a JSON object. */
+    private static String id(String line) {
+        try {
+            var node = Entities.json(line);
+            return node.isObject() ? node.path("id").asString() : line;
+        } catch (RuntimeException malformed) {
+            return line;
+        }
     }
 
     private static List<String> ids(int from, int to) {
@@ -83,25 +92,25 @@ class DumpEntityReaderTest {
     }
 
     @Test
-    void entitiesAreJsonObjects() throws Exception {
-        var dump = TestDumps.dump(List.of(TestDumps.entity("Q42")));
+    void returnsEachEntityLineAsTextWithoutItsTrailingComma() throws Exception {
+        var dump = TestDumps.dump(List.of(TestDumps.entity("Q42"), TestDumps.entity("Q43")));
         var reader = reader(new ScriptedOpener(dump::stream), 0, 3);
         reader.open(new ExecutionContext());
 
-        var entity = reader.read();
-        assertThat(entity.isObject()).isTrue();
-        assertThat(entity.path("type").asString()).isEqualTo("item");
+        assertThat(reader.read()).isEqualTo(TestDumps.entity("Q42"));
+        assertThat(reader.read()).isEqualTo(TestDumps.entity("Q43"));
         reader.close();
     }
 
     @Test
-    void skipsMalformedLinesBlankLinesAndNonObjects() throws Exception {
+    void returnsMalformedLinesAndNonObjectsAsTextButNotBlankLines() throws Exception {
+        // Parsing moved to the processor: the reader hands over every entity line, valid or not.
         var dump = TestDumps.dump(List.of(
                 TestDumps.entity("Q1"), "{not json", "", "[1,2]", "\"just a string\"", TestDumps.entity("Q2")));
         var reader = reader(new ScriptedOpener(dump::stream), 0, 3);
         reader.open(new ExecutionContext());
 
-        assertThat(readAll(reader)).containsExactly("Q1", "Q2");
+        assertThat(readAll(reader)).containsExactly("Q1", "{not json", "[1,2]", "\"just a string\"", "Q2");
         reader.close();
     }
 
@@ -125,13 +134,13 @@ class DumpEntityReaderTest {
     }
 
     @Test
-    void limitCountsEntitiesNotMalformedLines() throws Exception {
+    void limitCountsMalformedLinesToo() throws Exception {
         var dump = TestDumps.dump(List.of(
                 TestDumps.entity("Q1"), "{broken", TestDumps.entity("Q2"), TestDumps.entity("Q3")));
         var reader = reader(new ScriptedOpener(dump::stream), 2, 3);
         reader.open(new ExecutionContext());
 
-        assertThat(readAll(reader)).containsExactly("Q1", "Q2");
+        assertThat(readAll(reader)).containsExactly("Q1", "{broken");
         reader.close();
     }
 
@@ -156,13 +165,13 @@ class DumpEntityReaderTest {
     }
 
     @Test
-    void checkpointSkipCountsEntitiesNotMalformedLines() throws Exception {
+    void checkpointSkipCountsMalformedLinesToo() throws Exception {
         var dump = TestDumps.dump(List.of(
                 TestDumps.entity("Q1"), "{broken", TestDumps.entity("Q2"), TestDumps.entity("Q3")));
         var reader = reader(new ScriptedOpener(dump::stream), 0, 3);
         reader.open(checkpoint(2));
 
-        assertThat(readAll(reader)).containsExactly("Q3");
+        assertThat(readAll(reader)).containsExactly("Q2", "Q3");
         reader.close();
     }
 
@@ -177,7 +186,7 @@ class DumpEntityReaderTest {
     }
 
     @Test
-    void updateStoresTheNumberOfEntitiesReturned() throws Exception {
+    void updateStoresTheNumberOfLinesReturnedMalformedIncluded() throws Exception {
         var dump = TestDumps.dump(List.of(
                 TestDumps.entity("Q1"), "{broken", TestDumps.entity("Q2"), TestDumps.entity("Q3")));
         var reader = reader(new ScriptedOpener(dump::stream), 0, 3);
@@ -185,9 +194,10 @@ class DumpEntityReaderTest {
         reader.open(context);
         reader.read();
         reader.read();
+        reader.read();
         reader.update(context);
 
-        assertThat(context.getLong("entities.read")).isEqualTo(2);
+        assertThat(context.getLong("entities.read")).isEqualTo(3);
         reader.close();
     }
 
@@ -201,6 +211,19 @@ class DumpEntityReaderTest {
         reader.update(context);
 
         assertThat(context.getLong("entities.read")).isEqualTo(5);
+        reader.close();
+    }
+
+    @Test
+    void reconnectSkipsMalformedLinesAlreadyReturned() throws Exception {
+        var dump = TestDumps.dump(List.of(
+                TestDumps.entity("Q1"), "{broken", TestDumps.entity("Q2"), TestDumps.entity("Q3")));
+        var opener = new ScriptedOpener(() -> dump.failingAfter(2), dump::stream);
+        var reader = reader(opener, 0, 2);
+        reader.open(new ExecutionContext());
+
+        assertThat(readAll(reader)).containsExactly("Q1", "{broken", "Q2", "Q3");
+        assertThat(opener.calls).hasValue(2);
         reader.close();
     }
 
@@ -326,8 +349,8 @@ class DumpEntityReaderTest {
         var reader = reader(opener, 0, 3);
         reader.open(new ExecutionContext());
 
-        assertThat(reader.read().path("id").asString()).isEqualTo("Q1");
-        assertThat(reader.read().path("id").asString()).isEqualTo("Q2");
+        assertThat(id(reader.read())).isEqualTo("Q1");
+        assertThat(id(reader.read())).isEqualTo("Q2");
         assertThatThrownBy(reader::read).isInstanceOf(Exception.class);
         // the initial open plus exactly maxReconnects reconnect attempts
         assertThat(opener.calls).hasValue(1 + 3);
@@ -344,9 +367,9 @@ class DumpEntityReaderTest {
 
         var seen = new ArrayList<String>();
         assertThatThrownBy(() -> {
-            JsonNode entity;
-            while ((entity = reader.read()) != null) {
-                seen.add(entity.path("id").asString());
+            String line;
+            while ((line = reader.read()) != null) {
+                seen.add(id(line));
             }
         }).isInstanceOf(Exception.class);
         assertThat(seen).containsExactly("Q1", "Q2", "Q3");
