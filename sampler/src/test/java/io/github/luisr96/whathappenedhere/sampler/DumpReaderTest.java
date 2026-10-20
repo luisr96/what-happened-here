@@ -59,4 +59,26 @@ class DumpReaderTest {
         assertEquals(List.of("Q254", "Q220", "Q243", "Q191055"), ids(reader));
         assertEquals(0, reader.malformedLines());
     }
+
+    @Test
+    void skipPassesOverTheFirstEntities() {
+        var reader = reader(Fixtures.gzippedDump(FOUR, "\n"), 100);
+        assertEquals(List.of("Q243", "Q191055"),
+                reader.entities(2).map(e -> e.get("id").asString()).toList());
+    }
+
+    @Test
+    void skipCountsEntitiesExactlyAsReadingDoes() {
+        // Neither the malformed line, a non-object, nor an object with trailing tokens is an entity.
+        var lines = List.of(Fixtures.line("Q254"), "{\"id\":\"Q1\",\"broken", "[1]", "{} {}",
+                Fixtures.line("Q220"), Fixtures.line("Q243"));
+        var all = ids(reader(Fixtures.gzippedDump(lines, "\n"), 100));
+        var skipping = reader(Fixtures.gzippedDump(lines, "\n"), 100);
+
+        var afterOne = skipping.entities(1).map(e -> e.get("id").asString()).toList();
+
+        assertEquals(all.subList(1, all.size()), afterOne);
+        assertEquals(List.of("Q220", "Q243"), afterOne);
+        assertEquals(3, skipping.malformedLines());
+    }
 }
