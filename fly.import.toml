@@ -1,0 +1,35 @@
+# The throwaway app for the full import (see importer/Dockerfile). Created, run and destroyed by
+# hand; the served tables are copied to the permanent database before it goes. From the repo root:
+#   fly apps create whh-import
+#   fly volumes create whh_import_data --app whh-import --region iad --size 100
+#   fly secrets set --app whh-import POSTGRES_PASSWORD=...
+#   fly deploy --config fly.import.toml
+app = "whh-import"
+primary_region = "iad"
+# Time for a TERM to stop the importer and Postgres cleanly before Fly kills them.
+kill_timeout = 120
+
+[build]
+  dockerfile = "importer/Dockerfile"
+
+[env]
+  # A dated dump, not latest-all: "latest" can move to a newer dump between reconnects, and the
+  # importer resumes by line count.
+  IMPORT_SOURCE = "https://dumps.wikimedia.org/wikidatawiki/entities/20261012/wikidata-20261012-all.json.gz"
+  IMPORT_MAINTENANCE_WORK_MEM = "2GB"
+  # Ride out upstream outages of a few hours (backoff doubles up to 10 min) instead of restarting.
+  IMPORT_MAX_RECONNECTS = "30"
+
+[mounts]
+  source = "whh_import_data"
+  destination = "/data"
+
+# No services: nothing is exposed; reached with `fly ssh console` and over the private network.
+
+[[restart]]
+  policy = "on-failure"
+  retries = 10
+
+[[vm]]
+  size = "performance-8x"
+  memory = "16gb"
