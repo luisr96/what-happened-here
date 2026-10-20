@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.List;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,8 @@ import org.springframework.transaction.PlatformTransactionManager;
  *       which is what keeps the rows staged before the failure;</li>
  *   <li>extract: dump entities through the extractor into staging, committed chunk by chunk;</li>
  *   <li>resolve: replace {@code events} and {@code places} from staging with the API's
- *       {@code sql/resolve.sql}, then rebuild {@code timeline_cells}, in one transaction, so a
+ *       {@code sql/resolve.sql}, then rebuild {@code timeline_cells}, with their secondary
+ *       indexes dropped meanwhile (see {@link SecondaryIndexes}), in one transaction, so a
  *       failed import never touches what is served;</li>
  *   <li>report: write {@code import-report.md} (see {@link ImportReport}) to
  *       {@code import.report-dir}.</li>
@@ -45,6 +47,7 @@ public class ImportJobConfig {
     static final String NAME = "import";
     static final String SOURCE = "source";
     static final String LIMIT = "limit";
+    private static final List<String> SERVED_TABLES = List.of("events", "places", "timeline_cells");
 
     private static final Logger log = LoggerFactory.getLogger(ImportJobConfig.class);
 
@@ -99,11 +102,19 @@ public class ImportJobConfig {
     }
 
     @Bean
-    Step resolve(JobRepository jobs, PlatformTransactionManager transactions, JdbcTemplate jdbc) {
+    Step resolve(JobRepository jobs, PlatformTransactionManager transactions, JdbcTemplate jdbc,
+            @Value("${import.maintenance-work-mem:1GB}") String maintenanceWorkMem) {
         return new StepBuilder("resolve", jobs)
                 .tasklet((contribution, context) -> {
+                    SecondaryIndexes indexes = new SecondaryIndexes(jdbc, SERVED_TABLES);
+                    List<String> dropped = indexes.dropAll();
                     jdbc.execute(RESOLVE_SQL);
                     jdbc.execute(TIMELINE_SQL);
+                    // Index builds sort in memory up to this budget; transaction-local.
+                    jdbc.queryForObject("SELECT set_config('maintenance_work_mem', ?, true)",
+                            String.class, maintenanceWorkMem);
+                    indexes.recreate(dropped);
+                    jdbc.execute("ANALYZE " + String.join(", ", SERVED_TABLES));
                     return RepeatStatus.FINISHED;
                 }, transactions)
                 .build();

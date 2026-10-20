@@ -1,8 +1,7 @@
 -- Replaces events and places with the staged load (CLAUDE.md, Importer flow step 3): full
 -- replace only, never incremental. Keeps only places some event uses, copies their coordinates
 -- onto those events, and drops events whose place is unknown. Reused by the step 6 importer,
--- which at full-dump scale should drop the events indexes before the insert and rebuild them
--- after (or load a fresh table and swap).
+-- which drops the secondary indexes around it at full-dump scale (see SecondaryIndexes there).
 
 -- Staging tables may not be analyzed yet (temp tables never are); without statistics the
 -- planner guesses the join.

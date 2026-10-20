@@ -412,6 +412,52 @@ class ImportJobTest {
         assertThat(timelineSum(0)).isEqualTo(LARGE_BATTLES + LARGE_PEOPLE);
     }
 
+    @Test
+    void successfulImportLeavesTheSameIndexes() {
+        var before = indexRows();
+
+        var execution = importService.run(opener.register(FIXTURE), 0);
+
+        assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(before).extracting(row -> row.get("indexname"))
+                .contains("events_geom_idx", "events_place_qid_idx", "events_pkey");
+        assertThat(indexRows()).isEqualTo(before);
+    }
+
+    @Test
+    void failedImportLeavesTheSameIndexes() {
+        importService.run(opener.register(SECOND_FIXTURE), 0);
+        var before = indexRows();
+
+        opener.failAfter(5);
+        var failed = importService.run(opener.register(FIXTURE), 0);
+
+        assertThat(failed.getStatus()).isEqualTo(BatchStatus.FAILED);
+        assertThat(indexRows()).isEqualTo(before);
+    }
+
+    @Test
+    void indexedQueriesFindTheImportedEvents() {
+        importService.run(opener.register(FIXTURE), 0);
+
+        assertThat(jdbc.queryForList(
+                "SELECT id FROM events WHERE geom && ST_MakeEnvelope(-21, -11, -20, -10, 4326)", String.class))
+                .containsExactly("Q3:HAPPENED");
+        assertThat(jdbc.queryForList(
+                "SELECT id FROM events WHERE place_qid = 'Q91'", String.class))
+                .containsExactly("Q5:BORN");
+    }
+
+    @Test
+    void importLeavesNoIndexInvalid() {
+        importService.run(opener.register(FIXTURE), 0);
+
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM pg_index x JOIN pg_class t ON t.oid = x.indrelid
+                WHERE t.relname IN ('events', 'places', 'timeline_cells') AND NOT (x.indisvalid AND x.indisready)
+                """, Long.class)).isZero();
+    }
+
     private static final int LARGE_BATTLES = 120;
     private static final int LARGE_PEOPLE = 40;
 
@@ -435,6 +481,15 @@ class ImportJobTest {
             lines.add(item("Q" + (3000 + i), "", claim("P625", coords(i * 0.1, i * 0.25, 0.0001))));
         }
         return List.copyOf(lines);
+    }
+
+    /** Not via SecondaryIndexes: the catalog itself is the reference. */
+    private List<Map<String, Object>> indexRows() {
+        return jdbc.queryForList("""
+                SELECT tablename, indexname, indexdef FROM pg_indexes
+                WHERE schemaname = current_schema() AND tablename IN ('events', 'places', 'timeline_cells')
+                ORDER BY indexname
+                """);
     }
 
     private List<String> eventIds() {
