@@ -4,7 +4,8 @@
 -- which at full-dump scale should drop the events indexes before the insert and rebuild them
 -- after (or load a fresh table and swap).
 
--- Temp tables are never auto-analyzed; without statistics the planner guesses the join.
+-- Staging tables may not be analyzed yet (temp tables never are); without statistics the
+-- planner guesses the join.
 ANALYZE stage_events;
 ANALYZE stage_places;
 
