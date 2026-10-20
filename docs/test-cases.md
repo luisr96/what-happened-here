@@ -55,6 +55,9 @@ unknown).
 | Tomb of Tutankhamun (KV62) | Q835309 | Nothing (no date properties) | Discovery-type event; candidate for P575 later |
 | Black Death | Q42005 | Happened 1346 J to 1352 J (year), at Q48 (first P276) | Event with vague or no single place |
 | Battle of the Hornburg (Helm's Deep, fictional) | Q1764229 | Nothing | Fictional event (has no date either) |
+| 2015 Balkline 47.2 European Championship | Q101208683 | Happened 2015 (year, from P585; no end date) | P582 2013-04-29 is earlier than P580 2015-04-27: reversed end is unusable, so P585 2015 wins over the start alone |
+| 1899 Arima rumblings | Q11516855 | Happened 1899-07-05 (no end date) | P582 1890 (year) is certainly earlier than P580 1899-07-05, compared at year precision |
+| Kalofer massacre | Q118902351 | Happened 1878-07 (month, no end date) | P582 1877-08-07 is certainly earlier than P580 1878-07 (month) |
 
 ## Founded / Ended / Opened
 | Item | QID | Expected | Why |

@@ -64,6 +64,9 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
 - Coordinates keep their stated precision (degrees); a 1-degree point (Lisbon 1755, at sea) must
   be distinguishable from an exact one so the UI can show it as approximate. Approximate =
   precision unknown or >= 0.1 degrees (~11 km, coarser than a town).
+- Happened ranges: a P582 end certainly before the P580 start (compared down to the coarser of
+  the two precisions, calendar ignored) is unusable (the start is picked first and ends are judged against it), so the next usable end is taken, else the
+  P585 / P580-alone fallback applies (Q101208683: 2015-04-27 to 2013-04-29, a typo).
 - Dates: a value claiming more precision than it carries (e.g. `+1887-00-00` at day precision) is
   broken and dropped; fields below the stated precision are cleared to 0.
 - Exclusions: fictional items (detected via P31 types: fictional human/character, literary, film and

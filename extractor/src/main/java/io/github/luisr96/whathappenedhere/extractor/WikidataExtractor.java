@@ -4,6 +4,7 @@ import io.github.luisr96.whathappenedhere.extractor.Event.Coordinates;
 import io.github.luisr96.whathappenedhere.extractor.Event.Kind;
 import io.github.luisr96.whathappenedhere.extractor.Event.Place;
 import io.github.luisr96.whathappenedhere.extractor.Event.PlaceRef;
+import io.github.luisr96.whathappenedhere.extractor.HistoricDate.Precision;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -83,12 +85,30 @@ public final class WikidataExtractor {
     private static Event happened(JsonNode claims, Dates dates) {
         Place where = place(claims, "P625", "P276", "P131");
         HistoricDate start = dates.best("P580");
-        HistoricDate end = dates.best("P582");
+        // An end before the start is a typo (Q101208683: 2015-04-27 to 2013-04-29). The start is
+        // picked first and each end judged against it; a reversed end is skipped like an unusable
+        // value, so a lower-ranked end or the single-moment fallback applies.
+        HistoricDate end = start == null ? null : dates.best("P582", date -> !endsBefore(date, start));
         if (start != null && end != null) {
             return where == null ? null : new Event(Kind.HAPPENED, start, end, where);
         }
         HistoricDate pointInTime = dates.best("P585");
         return event(Kind.HAPPENED, pointInTime != null ? pointInTime : start, where);
+    }
+
+    /**
+     * True when {@code end} is certainly earlier than {@code start}, compared only down to the
+     * coarser of their precisions (2015-04-27 to 2015 is fine) and ignoring the calendar.
+     */
+    private static boolean endsBefore(HistoricDate end, HistoricDate start) {
+        Precision shared = end.precision().compareTo(start.precision()) < 0 ? end.precision() : start.precision();
+        if (shared.compareTo(Precision.MONTH) < 0 || end.year() != start.year()) {
+            return end.latestYear() < start.earliestYear();
+        }
+        if (end.month() != start.month()) {
+            return end.month() < start.month();
+        }
+        return shared == Precision.DAY && end.day() < start.day();
     }
 
     private static Event event(Kind kind, HistoricDate when, Place where) {
@@ -118,7 +138,11 @@ public final class WikidataExtractor {
     private record Dates(JsonNode claims, LocalDate today) {
 
         HistoricDate best(String propertyId) {
-            return Statements.bestDate(claims, propertyId, date -> !isFuture(date));
+            return best(propertyId, date -> true);
+        }
+
+        HistoricDate best(String propertyId, Predicate<HistoricDate> usable) {
+            return Statements.bestDate(claims, propertyId, date -> !isFuture(date) && usable.test(date));
         }
 
         // A date is future when even its earliest possible day is after today; fields below

@@ -1000,6 +1000,171 @@ class WikidataExtractorTest {
             assertEquals(1, item.importance());
             assertEquals(List.of("Q839954", "Q5"), item.instanceOf());
         }
+
+        /** P582 certainly earlier than P580 (compared at the coarser precision) is an unusable end. */
+        @Nested
+        class ReversedRange {
+
+            private static ObjectNode range(String start, int startPrecision, String end, int endPrecision) {
+                ObjectNode e = newEntity();
+                coords(e, 1, 2);
+                date(e, "P580", start, startPrecision);
+                date(e, "P582", end, endPrecision);
+                return e;
+            }
+
+            @Test
+            void reversedDayEndFallsBackToStartAlone() {
+                // Q101208683: start 2015-04-27, end 2013-04-29.
+                Event h = happened(range("+2015-04-27T00:00:00Z", 11, "+2013-04-29T00:00:00Z", 11));
+                assertDay(h.when(), 2015, 4, 27);
+                assertNull(h.endDate());
+            }
+
+            @Test
+            void reversedYearEndAgainstDayStartFallsBackToStartAlone() {
+                // Q11516855: start 1899-07-05, end 1890 (year).
+                Event h = happened(range("+1899-07-05T00:00:00Z", 11, "+1890-00-00T00:00:00Z", 9));
+                assertDay(h.when(), 1899, 7, 5);
+                assertNull(h.endDate());
+            }
+
+            @Test
+            void reversedDayEndAgainstMonthStartFallsBackToStartAlone() {
+                // Q118902351: start 1878-07 (month), end 1877-08-07.
+                Event h = happened(range("+1878-07-00T00:00:00Z", 10, "+1877-08-07T00:00:00Z", 11));
+                assertDate(h.when(), 1878, 7, 0, Precision.MONTH, Calendar.GREGORIAN);
+                assertNull(h.endDate());
+            }
+
+            @Test
+            void reversedEndFallsBackToPointInTime() {
+                ObjectNode e = range("+1900-05-01T00:00:00Z", 11, "+1900-04-30T00:00:00Z", 11);
+                date(e, "P585", "+1900-06-01T00:00:00Z", 11);
+                Event h = happened(e);
+                assertDay(h.when(), 1900, 6, 1);
+                assertNull(h.endDate());
+            }
+
+            @Test
+            void earlierMonthSameYearIsReversed() {
+                Event h = happened(range("+1900-05-00T00:00:00Z", 10, "+1900-04-00T00:00:00Z", 10));
+                assertNull(h.endDate());
+            }
+
+            @Test
+            void earlierDaySameMonthIsReversed() {
+                Event h = happened(range("+1900-05-02T00:00:00Z", 11, "+1900-05-01T00:00:00Z", 11));
+                assertNull(h.endDate());
+            }
+
+            @Test
+            void yearEndContainingDayStartIsKept() {
+                Event h = happened(range("+2015-04-27T00:00:00Z", 11, "+2015-00-00T00:00:00Z", 9));
+                assertDay(h.when(), 2015, 4, 27);
+                assertEquals(2015, h.endDate().year());
+                assertEquals(Precision.YEAR, h.endDate().precision());
+            }
+
+            @Test
+            void earlierDayInsideSameMonthAsMonthStartIsKept() {
+                Event h = happened(range("+1900-05-00T00:00:00Z", 10, "+1900-05-01T00:00:00Z", 11));
+                assertDay(h.endDate(), 1900, 5, 1);
+            }
+
+            @Test
+            void dayEndInsideSameYearAsYearStartIsKept() {
+                Event h = happened(range("+1900-00-00T00:00:00Z", 9, "+1900-01-01T00:00:00Z", 11));
+                assertDay(h.endDate(), 1900, 1, 1);
+            }
+
+            @Test
+            void sameDayStartAndEndIsKept() {
+                Event h = happened(range("+1900-05-01T00:00:00Z", 11, "+1900-05-01T00:00:00Z", 11));
+                assertDay(h.when(), 1900, 5, 1);
+                assertDay(h.endDate(), 1900, 5, 1);
+            }
+
+            @Test
+            void forwardBcRangeIsKept() {
+                Event h = happened(range("-0500-00-00T00:00:00Z", 9, "-0400-00-00T00:00:00Z", 9));
+                assertEquals(-500, h.when().year());
+                assertEquals(-400, h.endDate().year());
+            }
+
+            @Test
+            void reversedBcRangeFallsBackToStartAlone() {
+                Event h = happened(range("-0400-00-00T00:00:00Z", 9, "-0500-00-00T00:00:00Z", 9));
+                assertEquals(-400, h.when().year());
+                assertNull(h.endDate());
+            }
+
+            @Test
+            void calendarIsIgnoredInComparison() {
+                // Julian 1900-01-01 is Gregorian 1900-01-14, but the rule compares fields as written.
+                ObjectNode e = newEntity();
+                coords(e, 1, 2);
+                date(e, "P580", "+1900-01-05T00:00:00Z", 11);
+                add(e, "P582", "normal", "time", time("+1900-01-01T00:00:00Z", 11, TimeValues.JULIAN));
+                assertNull(happened(e).endDate());
+            }
+
+            @Test
+            void julianEndSameFieldsAsGregorianStartIsKept() {
+                ObjectNode e = newEntity();
+                coords(e, 1, 2);
+                date(e, "P580", "+1900-01-05T00:00:00Z", 11);
+                add(e, "P582", "normal", "time", time("+1900-01-05T00:00:00Z", 11, TimeValues.JULIAN));
+                assertDayJ(happened(e).endDate(), 1900, 1, 5);
+            }
+
+            @Test
+            void decadeEndOverlappingYearStartIsKept() {
+                Event h = happened(range("+1905-00-00T00:00:00Z", 9, "+1900-00-00T00:00:00Z", 8));
+                assertEquals(Precision.DECADE, h.endDate().precision());
+            }
+
+            @Test
+            void decadeEndBeforeYearStartIsReversed() {
+                Event h = happened(range("+1915-00-00T00:00:00Z", 9, "+1900-00-00T00:00:00Z", 8));
+                assertNull(h.endDate());
+            }
+
+            @Test
+            void centuryEndBeforeYearStartIsReversed() {
+                Event h = happened(range("+1950-00-00T00:00:00Z", 9, "+1800-00-00T00:00:00Z", 7));
+                assertEquals(1950, h.when().year());
+                assertNull(h.endDate());
+            }
+
+            @Test
+            void centuryEndOverlappingYearStartIsKept() {
+                Event h = happened(range("+1850-00-00T00:00:00Z", 9, "+1900-00-00T00:00:00Z", 7));
+                assertEquals(Precision.CENTURY, h.endDate().precision());
+            }
+
+            @Test
+            void reversedPreferredEndFallsBackToUsableNormalEnd() {
+                ObjectNode e = newEntity();
+                coords(e, 1, 2);
+                date(e, "P580", "+1900-05-01T00:00:00Z", 11);
+                date(e, "P582", "preferred", "+1899-01-01T00:00:00Z", 11);
+                date(e, "P582", "normal", "+1901-01-01T00:00:00Z", 11);
+                Event h = happened(e);
+                assertDay(h.when(), 1900, 5, 1);
+                assertDay(h.endDate(), 1901, 1, 1);
+            }
+
+            @Test
+            void reversedEarliestNormalEndFallsBackToLaterNormalEnd() {
+                ObjectNode e = newEntity();
+                coords(e, 1, 2);
+                date(e, "P580", "+1900-05-01T00:00:00Z", 11);
+                date(e, "P582", "+1901-01-01T00:00:00Z", 11);
+                date(e, "P582", "+1899-01-01T00:00:00Z", 11);
+                assertDay(happened(e).endDate(), 1901, 1, 1);
+            }
+        }
     }
 
     @Nested
