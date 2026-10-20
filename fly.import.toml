@@ -14,8 +14,9 @@ kill_timeout = 120
 
 [env]
   # A dated dump, not latest-all: "latest" can move to a newer dump between reconnects, and the
-  # importer resumes by line count.
-  IMPORT_SOURCE = "https://dumps.wikimedia.org/wikidatawiki/entities/20261012/wikidata-20261012-all.json.gz"
+  # importer resumes by line count. From the your.org mirror: dumps.wikimedia.org throttles each
+  # connection to ~5 MB/s (an 8-hour download); the mirror served the same file at ~100 MB/s.
+  IMPORT_SOURCE = "https://dumps.wikimedia.your.org/wikidatawiki/entities/20261012/wikidata-20261012-all.json.gz"
   IMPORT_MAINTENANCE_WORK_MEM = "2GB"
   # Ride out upstream outages of a few hours (backoff doubles up to 10 min) instead of restarting.
   IMPORT_MAX_RECONNECTS = "30"
