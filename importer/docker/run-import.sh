@@ -40,7 +40,10 @@ until pg_isready -h localhost -U postgres -q; do
     sleep 2
 done
 
-if [[ -e "$DONE" ]]; then
+if [[ "${IMPORT_PAUSED:-}" == 1 ]]; then
+    # For fixing data by hand between attempts: deploy with --env IMPORT_PAUSED=1, then without.
+    echo "IMPORT_PAUSED=1: Postgres only, the importer is not started"
+elif [[ -e "$DONE" ]]; then
     echo "import already finished ($(cat "$DONE")); delete $DONE to run it again"
 else
     # In the background so the TERM trap can run while it works; an OOM exits instead of hanging,
