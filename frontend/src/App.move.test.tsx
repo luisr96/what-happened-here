@@ -222,6 +222,7 @@ describe("App moving the what-happened-here circle", () => {
     expect(within(opened).getByText("Julius Caesar")).toBeInTheDocument();
     expect(within(opened).queryByText("Loading…")).not.toBeInTheDocument();
     release();
+    await waitFor(() => expect(within(opened).queryByText("Updating…")).not.toBeInTheDocument());
   });
 
   it("shows the newest position's list when an older position's response arrives later", async () => {
