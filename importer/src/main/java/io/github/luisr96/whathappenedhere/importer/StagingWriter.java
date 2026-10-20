@@ -72,7 +72,8 @@ public class StagingWriter implements ItemWriter<ImportRecord> {
                 when.earliestYear(), (end == null ? when : end).latestYear(),
                 isRef ? ((PlaceRef) event.where()).qid() : null,
                 own == null ? null : own.longitude(), own == null ? null : own.latitude(),
-                own == null ? null : own.precisionDegrees());
+                own == null ? null : own.precisionDegrees(),
+                "{" + String.join(",", item.instanceOf()) + "}");
     }
 
     /**

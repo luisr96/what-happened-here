@@ -4,9 +4,13 @@ import io.github.luisr96.whathappenedhere.extractor.WikidataExtractor;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -23,14 +27,16 @@ import org.springframework.transaction.PlatformTransactionManager;
 import tools.jackson.databind.JsonNode;
 
 /**
- * The import job (CLAUDE.md, Importer flow), in three steps:
+ * The import job (CLAUDE.md, Importer flow), in four steps:
  * <ol>
  *   <li>prepare: create and empty the staging tables. A restart skips it (it already completed),
  *       which is what keeps the rows staged before the failure;</li>
  *   <li>extract: dump entities through the extractor into staging, committed chunk by chunk;</li>
  *   <li>resolve: replace {@code events} and {@code places} from staging with the API's
  *       {@code sql/resolve.sql}, then rebuild {@code timeline_cells}, in one transaction, so a
- *       failed import never touches what is served.</li>
+ *       failed import never touches what is served;</li>
+ *   <li>report: write {@code import-report.md} (see {@link ImportReport}) to
+ *       {@code import.report-dir}.</li>
  * </ol>
  */
 @Configuration
@@ -40,13 +46,16 @@ public class ImportJobConfig {
     static final String SOURCE = "source";
     static final String LIMIT = "limit";
 
+    private static final Logger log = LoggerFactory.getLogger(ImportJobConfig.class);
+
     private static final String PREPARE_SQL = sql("sql/import_stage.sql");
     private static final String RESOLVE_SQL = sql("sql/resolve.sql");
     private static final String TIMELINE_SQL = sql("sql/timeline_cells.sql");
 
     @Bean
-    Job importJob(JobRepository jobs, Step prepare, Step extract, Step resolve) {
-        return new JobBuilder(NAME, jobs).start(prepare).next(extract).next(resolve).build();
+    Job importJob(JobRepository jobs, Step prepare, Step extract, Step resolve, Step report) {
+        return new JobBuilder(NAME, jobs).start(prepare).next(extract).next(resolve).next(report)
+                .build();
     }
 
     @Bean
@@ -78,6 +87,30 @@ public class ImportJobConfig {
                 .tasklet((contribution, context) -> {
                     jdbc.execute(RESOLVE_SQL);
                     jdbc.execute(TIMELINE_SQL);
+                    return RepeatStatus.FINISHED;
+                }, transactions)
+                .build();
+    }
+
+    /**
+     * Entities read is taken from the extract step's last checkpoint, which a restarted run
+     * carries over, rather than from this execution's own read count. A failure here (e.g. an
+     * unwritable directory) fails the job but leaves the resolved tables in place; restarting
+     * re-runs only this step.
+     */
+    @Bean
+    Step report(JobRepository jobs, PlatformTransactionManager transactions, ImportReporter reporter,
+            @Value("${import.report-dir:.}") Path reportDir) {
+        return new StepBuilder("report", jobs)
+                .tasklet((contribution, context) -> {
+                    var instance = context.getStepContext().getStepExecution().getJobExecution().getJobInstance();
+                    var extract = jobs.getLastStepExecution(instance, "extract");
+                    long entitiesRead = extract == null
+                            ? 0 : extract.getExecutionContext().getLong(DumpEntityReader.READ_KEY, 0L);
+                    Path file = reportDir.resolve("import-report.md");
+                    Files.createDirectories(reportDir);
+                    Files.writeString(file, reporter.report(entitiesRead).toMarkdown(), StandardCharsets.UTF_8);
+                    log.info("Import report: {}", file.toAbsolutePath());
                     return RepeatStatus.FINISHED;
                 }, transactions)
                 .build();

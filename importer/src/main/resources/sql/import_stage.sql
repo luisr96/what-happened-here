@@ -1,6 +1,7 @@
--- The importer's staging tables: same names and columns as the API's sql/stage.sql, so
--- sql/resolve.sql runs unchanged, but permanent instead of TEMP ... ON COMMIT DROP, because an
--- import commits chunk by chunk and must survive a restart. Emptied when a new import starts.
+-- The importer's staging tables: same names and columns as the API's sql/stage.sql (plus
+-- instance_of, for the import report), so sql/resolve.sql runs unchanged, but permanent instead
+-- of TEMP ... ON COMMIT DROP, because an import commits chunk by chunk and must survive a
+-- restart. Emptied when a new import starts.
 
 CREATE TABLE IF NOT EXISTS stage_events (
     id                  text NOT NULL,
@@ -24,7 +25,8 @@ CREATE TABLE IF NOT EXISTS stage_events (
     place_qid           text,
     longitude           double precision,
     latitude            double precision,
-    coord_precision_deg double precision
+    coord_precision_deg double precision,
+    instance_of         text[]
 );
 
 CREATE TABLE IF NOT EXISTS stage_places (
