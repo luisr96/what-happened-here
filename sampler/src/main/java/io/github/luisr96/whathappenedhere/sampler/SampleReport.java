@@ -1,13 +1,12 @@
 package io.github.luisr96.whathappenedhere.sampler;
 
 import io.github.luisr96.whathappenedhere.extractor.Event;
-import io.github.luisr96.whathappenedhere.extractor.Event.Coordinates;
 import io.github.luisr96.whathappenedhere.extractor.Event.Kind;
 import io.github.luisr96.whathappenedhere.extractor.Event.PlaceRef;
 import io.github.luisr96.whathappenedhere.extractor.ExtractedItem;
 import io.github.luisr96.whathappenedhere.extractor.HistoricDate;
 import io.github.luisr96.whathappenedhere.extractor.ItemFacts;
-import io.github.luisr96.whathappenedhere.extractor.Statements;
+import io.github.luisr96.whathappenedhere.extractor.WikidataExtractor;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -69,19 +68,11 @@ public final class SampleReport {
         CANDIDATE_PROPERTIES.forEach(property -> candidatesWithoutEvents.put(property, 0L));
     }
 
-    /**
-     * An entity's usable Earth coordinates (its best P625), or null. Any such entity is a place,
-     * whatever its sitelinks: events elsewhere may name it.
-     */
-    public static Coordinates placeCoordinates(JsonNode entity) {
-        return Statements.bestPlace(entity.path("claims"), "P625", Coordinates::parse);
-    }
-
     /** Adds one entity read from the dump, with the extractor's result for it (empty if none). */
     public void add(JsonNode entity, Optional<ExtractedItem> extracted) {
         entitiesRead++;
         JsonNode claims = entity.path("claims");
-        if (placeCoordinates(entity) != null) {
+        if (WikidataExtractor.placeCoordinates(entity) != null) {
             places.add(entity.path("id").asString(""));
         }
         countUnknownWikis(entity.path("sitelinks"));

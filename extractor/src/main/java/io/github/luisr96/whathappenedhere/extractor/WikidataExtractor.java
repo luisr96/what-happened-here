@@ -29,6 +29,14 @@ public final class WikidataExtractor {
     }
 
     /**
+     * An entity's usable Earth coordinates (its best P625), or null. Any such entity is a place,
+     * whatever its sitelinks: other items' events may name it (P19, P20, P276, P159, P131).
+     */
+    public static Coordinates placeCoordinates(JsonNode entity) {
+        return Statements.bestPlace(entity.path("claims"), "P625", Coordinates::parse);
+    }
+
+    /**
      * Extracts an item's events.
      *
      * @param entity a bare entity, as one line of the dump or the inside of Special:EntityData

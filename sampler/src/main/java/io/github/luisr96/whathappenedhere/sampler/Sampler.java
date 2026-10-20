@@ -51,7 +51,7 @@ public final class Sampler {
                 Optional<ExtractedItem> extracted = extractor.extract(entity);
                 report.add(entity, extracted);
                 extracted.ifPresent(item -> SampleWriter.writeItem(items, item));
-                Coordinates coords = SampleReport.placeCoordinates(entity);
+                Coordinates coords = WikidataExtractor.placeCoordinates(entity);
                 if (coords != null) {
                     SampleWriter.writePlace(places, entity.path("id").asString(""), coords);
                 }

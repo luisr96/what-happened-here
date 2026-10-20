@@ -274,12 +274,12 @@ class SampleReportTest {
 
     @Test
     void placeCoordinatesReturnsUsableEarthCoordinatesOrNull() {
-        var rome = SampleReport.placeCoordinates(Fixtures.entity("Q220"));
+        var rome = WikidataExtractor.placeCoordinates(Fixtures.entity("Q220"));
         assertEquals(41.9, rome.latitude(), 0.1);
         assertEquals(12.5, rome.longitude(), 0.1);
-        var noSitelinksPlace = SampleReport.placeCoordinates(synthetic("Q970", "", claim("P625", coords(47.8, 13.04))));
+        var noSitelinksPlace = WikidataExtractor.placeCoordinates(synthetic("Q970", "", claim("P625", coords(47.8, 13.04))));
         assertEquals(47.8, noSitelinksPlace.latitude(), 1e-9);
-        assertNull(SampleReport.placeCoordinates(Fixtures.entity("Q254")), "no P625");
-        assertNull(SampleReport.placeCoordinates(Fixtures.entity("synthetic-off-earth")), "globe is not Earth");
+        assertNull(WikidataExtractor.placeCoordinates(Fixtures.entity("Q254")), "no P625");
+        assertNull(WikidataExtractor.placeCoordinates(Fixtures.entity("synthetic-off-earth")), "globe is not Earth");
     }
 }
