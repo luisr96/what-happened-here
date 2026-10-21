@@ -95,3 +95,5 @@ unknown).
 | Mozart plus an earlier deprecated P569 (synthetic) | synthetic-deprecated-earlier | Born 1756-01-27 | Deprecated dropped before the earliest-date tie-break |
 | Mozart plus an earlier normal-rank P569 listed first, real one preferred (synthetic) | synthetic-two-birth-ranks | Born 1756-01-27 (preferred) | Multiple values |
 | Q19710815, redirect to George W. Bush (Q207) | Q19710815 | Item id Q207 (not Q19710815); Born 1946-07-06 at Q12073283 | The follower maps redirects; the extractor just reports the entity it was given |
+| Isernia la Pineta (Palaeolithic site) | Q1673859 | Nothing | Founded around -698000; dates whose earliest possible year is before 10,000 BC are excluded like future dates |
+| Pre-Columbian era | Q202390 | No Happened event | Range -48000 to 1492: a start before 10,000 BC is unusable, so there is no range; P585 would still apply (this item has none) |

@@ -856,6 +856,109 @@ class WikidataExtractorTest {
         }
 
         @Test
+        void palaeolithicFoundingIsTooOld() {
+            // Q1673859 Isernia la Pineta
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "-698000-00-00T00:00:00Z", 9);
+            assertNothing(e);
+        }
+
+        @Test
+        void yearBeforeTenThousandBcIsTooOld() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "-10001-00-00T00:00:00Z", 9);
+            assertNothing(e);
+        }
+
+        @Test
+        void tenThousandBcIsKept() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "-10000-00-00T00:00:00Z", 9);
+            assertEquals(-10000, event(extracted(e), Kind.FOUNDED).when().year());
+        }
+
+        @Test
+        void dayInTenThousandBcIsKept() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "-10000-12-31T00:00:00Z", 11);
+            assertEquals(-10000, event(extracted(e), Kind.FOUNDED).when().year());
+        }
+
+        @Test
+        void yearAfterTenThousandBcIsKept() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "-9999-00-00T00:00:00Z", 9);
+            assertEquals(-9999, event(extracted(e), Kind.FOUNDED).when().year());
+        }
+
+        @Test
+        void millenniumReachingBeforeTenThousandBcIsTooOld() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "-10500-00-00T00:00:00Z", 6);
+            assertNothing(e);
+        }
+
+        @Test
+        void tenthMillenniumBcIsKept() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "-10000-00-00T00:00:00Z", 6);
+            assertEquals(Precision.MILLENNIUM, event(extracted(e), Kind.FOUNDED).when().precision());
+        }
+
+        @Test
+        void centuryReachingBeforeTenThousandBcIsTooOld() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "-10200-00-00T00:00:00Z", 7);
+            assertNothing(e);
+        }
+
+        @Test
+        void centuryWithinLimitIsKept() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "-9800-00-00T00:00:00Z", 7);
+            HistoricDate when = event(extracted(e), Kind.FOUNDED).when();
+            assertEquals(Precision.CENTURY, when.precision());
+            assertTrue(when.earliestYear() >= -10000);
+        }
+
+        @Test
+        void rangeStartingTooEarlyIsDroppedEvenIfItEndsLater() {
+            // Q202390 pre-Columbian era: -48000 to 1492
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P580", "-48000-00-00T00:00:00Z", 9);
+            date(e, "P582", "+1492-00-00T00:00:00Z", 9);
+            assertNothing(e);
+        }
+
+        @Test
+        void tooOldPreferredValueFallsBackToNormal() {
+            ObjectNode e = newEntity();
+            place(e, "P19", "Q1");
+            date(e, "P569", "preferred", "-20000-00-00T00:00:00Z", 9);
+            date(e, "P569", "normal", "-500-00-00T00:00:00Z", 9);
+            assertEquals(-500, event(extracted(e), Kind.BORN).when().year());
+        }
+
+        @Test
+        void tooOldFoundingLeavesEndedIntact() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "-20000-00-00T00:00:00Z", 9);
+            date(e, "P576", "+1900-00-00T00:00:00Z", 9);
+            assertKinds(extracted(e), Kind.ENDED);
+        }
+
+        @Test
         void importanceZeroExcluded() {
             ObjectNode e = newEntity();
             e.putObject("sitelinks").putObject("commonswiki").put("site", "commonswiki");

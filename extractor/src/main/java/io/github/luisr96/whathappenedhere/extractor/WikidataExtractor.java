@@ -134,15 +134,27 @@ public final class WikidataExtractor {
         return null;
     }
 
-    /** Best dates of an entity, skipping future ones so the next usable value is used instead. */
+    /**
+     * Best dates of an entity, skipping future dates and dates that may lie before 10,000 BC, so
+     * the next usable value is used instead.
+     */
     private record Dates(JsonNode claims, LocalDate today) {
+
+        private static final long EARLIEST_USABLE_YEAR = -10_000;
 
         HistoricDate best(String propertyId) {
             return best(propertyId, date -> true);
         }
 
         HistoricDate best(String propertyId, Predicate<HistoricDate> usable) {
-            return Statements.bestDate(claims, propertyId, date -> !isFuture(date) && usable.test(date));
+            return Statements.bestDate(claims, propertyId,
+                    date -> !isFuture(date) && !isTooOld(date) && usable.test(date));
+        }
+
+        // Before recorded history, and so sparse it would stretch the timeline (Q1673859, a
+        // Palaeolithic site at 698,000 BC): a date that may lie before 10,000 BC is unusable.
+        private static boolean isTooOld(HistoricDate date) {
+            return date.earliestYear() < EARLIEST_USABLE_YEAR;
         }
 
         // A date is future when even its earliest possible day is after today; fields below
