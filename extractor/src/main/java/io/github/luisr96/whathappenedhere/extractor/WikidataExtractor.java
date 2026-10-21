@@ -135,8 +135,9 @@ public final class WikidataExtractor {
     }
 
     /**
-     * Best dates of an entity, skipping future dates and dates that may lie before 10,000 BC, so
-     * the next usable value is used instead.
+     * Best dates of an entity, skipping future dates, dates that may lie before 10,000 BC and
+     * millennium-precision dates in the 2nd millennium AD or later, so the next usable value is
+     * used instead.
      */
     private record Dates(JsonNode claims, LocalDate today) {
 
@@ -148,13 +149,20 @@ public final class WikidataExtractor {
 
         HistoricDate best(String propertyId, Predicate<HistoricDate> usable) {
             return Statements.bestDate(claims, propertyId,
-                    date -> !isFuture(date) && !isTooOld(date) && usable.test(date));
+                    date -> !isFuture(date) && !isTooOld(date) && !isTooVague(date) && usable.test(date));
         }
 
         // Before recorded history, and so sparse it would stretch the timeline (Q1673859, a
         // Palaeolithic site at 698,000 BC): a date that may lie before 10,000 BC is unusable.
         private static boolean isTooOld(HistoricDate date) {
             return date.earliestYear() < EARLIEST_USABLE_YEAR;
+        }
+
+        // A millennium after AD 1000 is too vague to place on the timeline, and is usually a
+        // mis-entered precision (Q6137558, a 20th-century sound engineer born "1900" at millennium
+        // precision).
+        private static boolean isTooVague(HistoricDate date) {
+            return date.precision() == Precision.MILLENNIUM && date.earliestYear() > 1000;
         }
 
         // A date is future when even its earliest possible day is after today; fields below

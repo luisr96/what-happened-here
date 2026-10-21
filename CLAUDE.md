@@ -79,8 +79,9 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
   unit, e.g. Zanclean), sports seasons of a club, league or player (not the generic sports season
   that tournament editions like the 2022 FIFA World Cup use), coordinates not on Earth (globe must
   be Q2), future dates, dates that may lie before 10,000 BC (earliest possible year < -10000,
-  e.g. Q1673859 at 698,000 BC; such a P580 start is unusable, so the P585 fallback applies), broken
-  dates. Further exclusions are decided from looking at sample output, not guessed upfront.
+  e.g. Q1673859 at 698,000 BC; such a P580 start is unusable, so the P585 fallback applies),
+  millennium-precision dates in the 2nd millennium AD or later (earliest possible year > 1000;
+  Q6137558 "born 1900" at millennium precision), broken dates. Further exclusions are decided from looking at sample output, not guessed upfront.
 
 ## Architecture
 | Piece | Job | Tech | Runs where |

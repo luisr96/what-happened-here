@@ -35,6 +35,7 @@ unknown).
 | Sherlock Holmes | Q4653 | Nothing | Fictional person (has dates but no places, so the fictional rule itself is tested by `synthetic-fictional`) |
 | King Arthur | Q45792 | Died 0600 J (century) at Q1028477; no Born (no P19) | Mythical character but also typed "human whose existence is disputed", so kept |
 | Hagar | Q214617 | Born -1930 J (year) at Q11768; no Died (no P20) | Film character but also typed "human biblical figure", so kept |
+| James L. Fields (sound engineer) | Q6137558 | No Born | P569 is `+1900` at millennium precision ("sometime 1001-2000"): a millennium after AD 1000 is too vague to place, so dropped like a future date (rule tested by Synthetic tests) |
 | Zeus | Q34201 | Nothing | Deity with no dates or places; the type rule itself is tested by `synthetic-mythical` |
 
 ## Happened (point in time / start-end)

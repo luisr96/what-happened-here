@@ -959,6 +959,100 @@ class WikidataExtractorTest {
         }
 
         @Test
+        void secondMillenniumBirthIsTooVague() {
+            // Q6137558 James L. Fields: P569 +1900 at millennium precision
+            ObjectNode e = newEntity();
+            place(e, "P19", "Q1");
+            date(e, "P569", "+1900-00-00T00:00:00Z", 6);
+            assertNothing(e);
+        }
+
+        @Test
+        void yearThousandMillenniumIsFirstMillenniumAndKept() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "+1000-00-00T00:00:00Z", 6);
+            HistoricDate when = event(extracted(e), Kind.FOUNDED).when();
+            assertEquals(Precision.MILLENNIUM, when.precision());
+            assertEquals(1, when.earliestYear());
+            assertEquals(1000, when.year());
+        }
+
+        @Test
+        void tooVagueStartFallsBackToPointInTime() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P580", "+1900-00-00T00:00:00Z", 6);
+            date(e, "P582", "+1950-00-00T00:00:00Z", 9);
+            date(e, "P585", "+1920-00-00T00:00:00Z", 9);
+            Event h = happened(e);
+            assertEquals(1920, h.when().year());
+            assertNull(h.endDate());
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"+1001-00-00T00:00:00Z", "+2000-00-00T00:00:00Z", "+2001-00-00T00:00:00Z"})
+        void secondMillenniumOrLaterIsTooVague(String time) {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", time, 6);
+            assertNothing(e);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"-3000-00-00T00:00:00Z", "+0500-00-00T00:00:00Z"})
+        void bcAndFirstMillenniumAdMillenniaAreKept(String time) {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", time, 6);
+            assertEquals(Precision.MILLENNIUM, event(extracted(e), Kind.FOUNDED).when().precision());
+        }
+
+        @Test
+        void twentiethCenturyIsNotTooVague() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P571", "+1900-00-00T00:00:00Z", 7);
+            HistoricDate when = event(extracted(e), Kind.FOUNDED).when();
+            assertEquals(Precision.CENTURY, when.precision());
+            assertEquals(1900, when.year());
+        }
+
+        @Test
+        void tooVaguePreferredBirthFallsBackToNormal() {
+            ObjectNode e = newEntity();
+            place(e, "P19", "Q1");
+            date(e, "P569", "preferred", "+1900-00-00T00:00:00Z", 6);
+            date(e, "P569", "normal", "+1923-00-00T00:00:00Z", 9);
+            HistoricDate when = event(extracted(e), Kind.BORN).when();
+            assertEquals(1923, when.year());
+            assertEquals(Precision.YEAR, when.precision());
+        }
+
+        @Test
+        void tooVagueEndFallsBackToStartAlone() {
+            ObjectNode e = newEntity();
+            coords(e, 1, 2);
+            date(e, "P580", "+1500-00-00T00:00:00Z", 9);
+            date(e, "P582", "+1900-00-00T00:00:00Z", 6);
+            Event h = happened(e);
+            assertEquals(1500, h.when().year());
+            assertNull(h.endDate());
+        }
+
+        @Test
+        void tooVagueBirthLeavesDiedIntact() {
+            ObjectNode e = newEntity();
+            place(e, "P19", "Q1");
+            place(e, "P20", "Q2");
+            date(e, "P569", "+1900-00-00T00:00:00Z", 6);
+            date(e, "P570", "+1975-00-00T00:00:00Z", 9);
+            ExtractedItem item = extracted(e);
+            assertKinds(item, Kind.DIED);
+            assertEquals(1975, event(item, Kind.DIED).when().year());
+        }
+
+        @Test
         void importanceZeroExcluded() {
             ObjectNode e = newEntity();
             e.putObject("sitelinks").putObject("commonswiki").put("site", "commonswiki");
