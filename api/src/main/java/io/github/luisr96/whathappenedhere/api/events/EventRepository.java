@@ -79,12 +79,16 @@ public class EventRepository {
                 .addValue("minLat", BigDecimal.valueOf(box.minLat()))
                 .addValue("maxLat", BigDecimal.valueOf(box.maxLat()))
                 .addValue("minImportance", filter.minImportance());
-        // Same numeric floor as sql/timeline_cells.sql, so box corners and points agree.
+        // Same numeric floor as sql/timeline_cells.sql, so box corners and points agree; cast
+        // back to integer so the columns stay integer and the primary key can bound the cells.
+        // A box crossing 180° is an OR on cell_x, which one index range can't take; only level
+        // and cell_y bound it there. Fine while such boxes are rare.
         String cellX = box.crossesAntimeridian()
-                ? "(cell_x >= floor(:minLon / :size) OR cell_x <= floor(:maxLon / :size))"
-                : "cell_x BETWEEN floor(:minLon / :size) AND floor(:maxLon / :size)";
+                ? "(cell_x >= floor(:minLon / :size)::integer OR cell_x <= floor(:maxLon / :size)::integer)"
+                : "cell_x BETWEEN floor(:minLon / :size)::integer AND floor(:maxLon / :size)::integer";
         String sql = "SELECT decade, sum(n) AS n FROM timeline_cells WHERE level = :level AND "
-                + cellX + " AND cell_y BETWEEN floor(:minLat / :size) AND floor(:maxLat / :size)"
+                + cellX + " AND cell_y BETWEEN floor(:minLat / :size)::integer"
+                + " AND floor(:maxLat / :size)::integer"
                 + " AND importance >= :minImportance"
                 + kindsCondition(filter, params)
                 + " GROUP BY decade ORDER BY decade";
