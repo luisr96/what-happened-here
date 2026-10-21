@@ -3,7 +3,7 @@ import type { components } from "../api/schema";
 import { formatYear } from "../format/historicDate";
 import { Histogram } from "./Histogram";
 import { RangeTrack } from "./RangeTrack";
-import { extentOf, ticks, yearFraction, zoom, type YearRange } from "./timeScale";
+import { currentYear, EARLIEST_YEAR, extentOf, ticks, yearFraction, zoom, type YearRange } from "./timeScale";
 import { YearField } from "./YearField";
 
 type DecadeCount = components["schemas"]["DecadeCount"];
@@ -29,11 +29,18 @@ export function TimeBar({ decades, range, onRangeChange }: TimeBarProps) {
   // With nothing selected the handles and boxes sit at the view's ends.
   const selected = range ?? view;
 
-  /** Sets one end, keeping the other; ends that cross are swapped, so it's always earlier to later. */
+  /**
+   * Sets one end from a typed or era-flipped year, keeping the other. The year is held within the
+   * data's limits (10,000 BC to this year) and can't cross the other end, so flipping 10000 BC
+   * to AD gives this year rather than a range running backwards. Dragging a handle past the
+   * other swaps them instead (RangeTrack): there the hand is still moving, here a value is set.
+   */
   const setEnd = (end: "from" | "to", year: number) => {
     if (selected === null) return;
-    const other = end === "from" ? selected.to : selected.from;
-    onRangeChange({ from: Math.min(year, other), to: Math.max(year, other) });
+    const bounded = Math.min(currentYear(), Math.max(EARLIEST_YEAR, year));
+    onRangeChange(end === "from"
+      ? { from: Math.min(bounded, selected.to), to: selected.to }
+      : { from: selected.from, to: Math.max(bounded, selected.from) });
   };
 
   const zoomBy = (factor: number, center?: number) => {

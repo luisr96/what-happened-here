@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { EARLIEST_YEAR } from "./timeScale";
 
-const MAX_DIGITS = 4;
-const MAX_YEAR = 9999;
+// Up to 10000 (BC); TimeBar clamps AD years to the current year.
+const MAX_DIGITS = 5;
+const MAX_YEAR = -EARLIEST_YEAR;
 
 export type YearFieldProps = {
   /** "From" or "To": names the box ("From year") and its era toggle ("From era"). */
@@ -51,7 +53,7 @@ export function YearField({ label, year, onCommit }: YearFieldProps) {
         disabled={year === null}
         value={draft ?? (year === null ? "" : String(Math.abs(year)))}
         onChange={(e) => {
-          // At most four digits: a fifth is dropped, so the box just doesn't take it.
+          // At most five digits: a sixth is dropped, so the box just doesn't take it.
           setDraft(e.target.value.slice(0, MAX_DIGITS));
           setInvalid(false);
         }}

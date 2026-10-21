@@ -737,9 +737,9 @@ body,
 }
 
 .year-field__input {
-  /* One fixed width for both boxes: 4 digits (YearField's cap) plus padding, border-box. In em,
+  /* One fixed width for both boxes: 5 digits (YearField's cap) plus padding, border-box. In em,
      not ch: ch is the width of a plain "0", narrower than the tabular digits used here. */
-  width: calc(2.6em + 8px);
+  width: calc(3.25em + 8px);
   height: 100%;
   padding: 0 6px 0 0;
   border: 0;

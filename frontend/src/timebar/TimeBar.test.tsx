@@ -420,14 +420,24 @@ describe("TimeBar typed years", () => {
     expect(onRangeChange).toHaveBeenLastCalledWith({ from: -5000, to: NOW });
   });
 
-  it("swap the ends when the typed From is after To", async () => {
+  it("clamp a typed From after To to To's year instead of swapping", async () => {
     const user = userEvent.setup();
     const { onRangeChange } = renderBar({ from: 1800, to: 1900 });
 
     await user.clear(fromYear());
     await user.type(fromYear(), "1950{Enter}");
 
-    expect(onRangeChange).toHaveBeenLastCalledWith({ from: 1900, to: 1950 });
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: 1900, to: 1900 });
+  });
+
+  it("clamp a typed To before From to From's year instead of swapping", async () => {
+    const user = userEvent.setup();
+    const { onRangeChange } = renderBar({ from: 1800, to: 1900 });
+
+    await user.clear(toYear());
+    await user.type(toYear(), "1700{Enter}");
+
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: 1800, to: 1800 });
   });
 
   it.each(["0", ""])("mark %j as invalid, apply nothing and revert on blur", async (typed) => {
@@ -456,13 +466,13 @@ describe("TimeBar typed years", () => {
     expect(onRangeChange).toHaveBeenLastCalledWith({ from: -44, to: -14 });
   });
 
-  it("flipping the From era to AD swaps ends that end up reversed", async () => {
+  it("flipping the From era to AD past To clamps From to To instead of swapping", async () => {
     const user = userEvent.setup();
     const { onRangeChange } = renderBar({ from: -44, to: 14 });
 
     await user.click(fromEra());
 
-    expect(onRangeChange).toHaveBeenLastCalledWith({ from: 14, to: 44 });
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: 14, to: 14 });
   });
 
   it("flipping the From era with no range keeps the view's end as To", async () => {
@@ -565,56 +575,53 @@ describe("TimeBar zoom", () => {
   });
 });
 
-describe("TimeBar typed years are at most 4 digits", () => {
-  it("caps the boxes at 9999", () => {
+describe("TimeBar typed years are at most 5 digits", () => {
+  it("caps the boxes at 10000", () => {
     renderBar();
 
-    expect(fromYear()).toHaveAttribute("max", "9999");
-    expect(toYear()).toHaveAttribute("max", "9999");
+    expect(fromYear()).toHaveAttribute("max", "10000");
+    expect(toYear()).toHaveAttribute("max", "10000");
   });
 
-  it("ignores a typed 5th digit and shows nothing invalid", async () => {
+  it("commits a typed 5-digit \"10000\" BC as the range start -10000", async () => {
     const user = userEvent.setup();
-    const { onRangeChange } = renderBar({ from: 1800, to: 1900 });
+    const onChange = renderControlled({ from: -44, to: 14 });
 
-    await user.clear(toYear());
-    await user.type(toYear(), "1950");
-    await user.type(toYear(), "7");
+    await user.clear(fromYear());
+    await user.type(fromYear(), "10000{Enter}");
 
-    expect(toYear()).toHaveValue(1950);
-    expect(toYear()).not.toHaveAttribute("aria-invalid", "true");
-    await user.keyboard("{Enter}");
-    expect(onRangeChange).toHaveBeenLastCalledWith({ from: 1800, to: 1950 });
+    expect(fromYear()).toHaveValue(10000);
+    expect(onChange).toHaveBeenLastCalledWith({ from: -10000, to: 14 });
   });
 
-  it("keeps the first 4 digits of a typed \"12345\"", async () => {
+  it("ignores a typed 6th digit: \"100000\" leaves \"10000\"", async () => {
     const user = userEvent.setup();
     const { onRangeChange } = renderBar({ from: -44, to: 14 });
 
     await user.clear(fromYear());
-    await user.type(fromYear(), "12345");
+    await user.type(fromYear(), "100000");
 
-    expect(fromYear()).toHaveValue(1234);
+    expect(fromYear()).toHaveValue(10000);
+    expect(fromYear()).not.toHaveAttribute("aria-invalid", "true");
     await user.keyboard("{Enter}");
-    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -1234, to: 14 });
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -10000, to: 14 });
   });
 
-  it("keeps the first 4 digits of a pasted \"12345\"", async () => {
+  it("keeps the first 5 digits of a pasted \"123456\"", async () => {
     const user = userEvent.setup();
-    renderBar({ from: 1800, to: 1900 });
+    renderBar({ from: -44, to: 14 });
 
-    await user.clear(toYear());
-    await user.click(toYear());
-    await user.paste("12345");
+    await user.clear(fromYear());
+    await user.click(fromYear());
+    await user.paste("123456");
 
-    expect(toYear()).toHaveValue(1234);
-    expect(toYear()).not.toHaveAttribute("aria-invalid", "true");
+    expect(fromYear()).toHaveValue(12345);
   });
 
   it.each([
     ["1", 1],
-    ["9999", 9999],
-  ])("commits the boundary year %s", async (typed, year) => {
+    ["1999", 1999],
+  ])("commits the in-range year %s", async (typed, year) => {
     const user = userEvent.setup();
     const { onRangeChange } = renderBar({ from: -10000, to: 14 });
 
@@ -622,5 +629,84 @@ describe("TimeBar typed years are at most 4 digits", () => {
     await user.type(toYear(), `${typed}{Enter}`);
 
     expect(onRangeChange).toHaveBeenLastCalledWith({ from: -10000, to: year });
+  });
+});
+
+describe("TimeBar typed years are clamped to 10000 BC .. the current year", () => {
+  it("clamps a typed To year past the current year to the current year", async () => {
+    const user = userEvent.setup();
+    const onChange = renderControlled({ from: 1800, to: 1900 });
+
+    await user.clear(toYear());
+    await user.type(toYear(), "3000{Enter}");
+
+    expect(onChange).toHaveBeenLastCalledWith({ from: 1800, to: NOW });
+    expect(toYear()).toHaveValue(NOW);
+    expect(toEra()).toHaveTextContent("AD");
+  });
+
+  it("clamps a typed From year before 10000 BC to 10000 BC", async () => {
+    const user = userEvent.setup();
+    const onChange = renderControlled({ from: -44, to: 14 });
+
+    await user.clear(fromYear());
+    await user.type(fromYear(), "12000{Enter}");
+
+    expect(onChange).toHaveBeenLastCalledWith({ from: -10000, to: 14 });
+    expect(fromYear()).toHaveValue(10000);
+    expect(fromEra()).toHaveTextContent("BC");
+  });
+
+  it("clamps a typed To year before 10000 BC to 10000 BC", async () => {
+    const user = userEvent.setup();
+    const { onRangeChange } = renderBar({ from: -10000, to: -5000 });
+
+    await user.clear(toYear());
+    await user.type(toYear(), "12000{Enter}");
+
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -10000, to: -10000 });
+  });
+
+  it("flipping From to AD on the full extent gives From = To = the current year, never 10000 AD", async () => {
+    const user = userEvent.setup();
+    const onChange = renderControlled({ from: -10000, to: NOW });
+
+    await user.click(fromEra());
+
+    expect(onChange).toHaveBeenLastCalledWith({ from: NOW, to: NOW });
+    expect(fromYear()).toHaveValue(NOW);
+    expect(fromEra()).toHaveTextContent("AD");
+    expect(toYear()).toHaveValue(NOW);
+    expect(toEra()).toHaveTextContent("AD");
+  });
+
+  it("flipping To to BC before From clamps To to From, never swapping", async () => {
+    const user = userEvent.setup();
+    const { onRangeChange } = renderBar({ from: -10, to: 44 });
+
+    await user.click(toEra());
+
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: -10, to: -10 });
+  });
+
+  it("leaves an in-range typed From unchanged: 1200 with To at the current year", async () => {
+    const user = userEvent.setup();
+    const { onRangeChange } = renderBar({ from: 1800, to: NOW });
+
+    await user.clear(fromYear());
+    await user.type(fromYear(), "1200{Enter}");
+
+    expect(onRangeChange).toHaveBeenLastCalledWith({ from: 1200, to: NOW });
+  });
+
+  it("flipping From from 44 BC to AD with To at the current year gives 44 AD .. now", async () => {
+    const user = userEvent.setup();
+    const onChange = renderControlled({ from: -44, to: NOW });
+
+    await user.click(fromEra());
+
+    expect(onChange).toHaveBeenLastCalledWith({ from: 44, to: NOW });
+    expect(fromYear()).toHaveValue(44);
+    expect(fromEra()).toHaveTextContent("AD");
   });
 });
