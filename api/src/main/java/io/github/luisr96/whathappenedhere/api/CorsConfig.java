@@ -8,7 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Cross-origin access for a frontend served from another origin (GitHub Pages calling the API on
- * Fly.io). Origins come from {@code app.cors.allowed-origins} (comma-separated, exact matches);
+ * its own server). Origins come from {@code app.cors.allowed-origins} (comma-separated, exact matches);
  * with none configured the API stays same-origin only, as in development behind the Vite proxy.
  * The API is read-only and public, so only GET is allowed, without credentials.
  */

@@ -30,7 +30,7 @@ export function bboxParam(bbox: Bbox): string {
 /**
  * Where API paths are appended. By default `/api` on the page's own origin (the Vite dev proxy
  * strips it). A build for a static host on another origin sets `VITE_API_BASE_URL` to the API's
- * absolute URL (e.g. GitHub Pages calling Fly.io). A malformed value is a build mistake, so it
+ * absolute URL (e.g. GitHub Pages calling the API on its own server). A malformed value is a build mistake, so it
  * throws rather than sending requests somewhere unexpected.
  */
 export function apiBaseUrl(env: { VITE_API_BASE_URL?: string | undefined }): string {

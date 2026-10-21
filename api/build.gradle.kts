@@ -8,7 +8,7 @@ dependencies {
     implementation(project(":extractor"))
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
-    implementation("org.springframework.boot:spring-boot-starter-actuator") // /actuator/health for Fly
+    implementation("org.springframework.boot:spring-boot-starter-actuator") // /actuator/health, for checking a deploy
     implementation("org.springframework.boot:spring-boot-starter-restclient")
     implementation("com.github.ben-manes.caffeine:caffeine")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
