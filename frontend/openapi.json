@@ -67,6 +67,26 @@
         }
       }
     },
+    "/stats/summary" : {
+      "get" : {
+        "tags" : [ "stats-summary-controller" ],
+        "summary" : "Whole-dataset numbers: events, places, events per kind, years covered",
+        "description" : "Counted once per API start; the data only changes with a re-import.",
+        "operationId" : "summary",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StatsSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/places/nearby" : {
       "get" : {
         "tags" : [ "events-controller" ],
@@ -365,6 +385,45 @@
           }
         },
         "required" : [ "decades" ]
+      },
+      "StatsSummary" : {
+        "type" : "object",
+        "properties" : {
+          "events" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "All events on the map"
+          },
+          "places" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Places in the database (items whose coordinates events use)"
+          },
+          "eventsByKind" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            },
+            "description" : "Events per kind; every kind is listed, 0 when it has none"
+          },
+          "earliestYear" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64",
+            "description" : "Earliest year of any event (negative for BC); null without events"
+          },
+          "latestYear" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64",
+            "description" : "Latest year of any event; null without events"
+          },
+          "dumpDate" : {
+            "type" : [ "string", "null" ],
+            "description" : "Date of the Wikidata dump the data comes from (YYYY-MM-DD); null when not configured",
+            "example" : "2026-10-12"
+          }
+        },
+        "required" : [ "dumpDate", "earliestYear", "events", "eventsByKind", "latestYear", "places" ]
       },
       "DateView" : {
         "type" : "object",

@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stats/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whole-dataset numbers: events, places, events per kind, years covered
+         * @description Counted once per API start; the data only changes with a re-import.
+         */
+        get: operations["summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/places/nearby": {
         parameters: {
             query?: never;
@@ -106,6 +126,37 @@ export interface components {
         };
         TimelineResponse: {
             decades: components["schemas"]["DecadeCount"][];
+        };
+        StatsSummary: {
+            /**
+             * Format: int64
+             * @description All events on the map
+             */
+            events: number;
+            /**
+             * Format: int64
+             * @description Places in the database (items whose coordinates events use)
+             */
+            places: number;
+            /** @description Events per kind; every kind is listed, 0 when it has none */
+            eventsByKind: {
+                [key: string]: number;
+            };
+            /**
+             * Format: int64
+             * @description Earliest year of any event (negative for BC); null without events
+             */
+            earliestYear: number | null;
+            /**
+             * Format: int64
+             * @description Latest year of any event; null without events
+             */
+            latestYear: number | null;
+            /**
+             * @description Date of the Wikidata dump the data comes from (YYYY-MM-DD); null when not configured
+             * @example 2026-10-12
+             */
+            dumpDate: string | null;
         };
         DateView: {
             /** Format: int64 */
@@ -242,6 +293,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StatsSummary"];
                 };
             };
         };

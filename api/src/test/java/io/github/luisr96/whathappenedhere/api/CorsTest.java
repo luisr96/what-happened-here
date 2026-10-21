@@ -41,7 +41,7 @@ class CorsTest {
                 "/events?bbox=-180,-90,180,90",
                 "/events/Q0:BORN",
                 "/places/nearby?lat=0&lon=0&radius=1000",
-                "/stats/timeline?bbox=-180,-90,180,90"})
+                "/stats/timeline?bbox=-180,-90,180,90", "/stats/summary"})
         void allowedOriginIsEchoedOnGet(String url) throws Exception {
             mvc.perform(get(url).header(HttpHeaders.ORIGIN, PAGES))
                     .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, PAGES))
@@ -58,7 +58,7 @@ class CorsTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"/events", "/events/Q0:BORN", "/places/nearby", "/stats/timeline"})
+        @ValueSource(strings = {"/events", "/events/Q0:BORN", "/places/nearby", "/stats/timeline", "/stats/summary"})
         void preflightForGetIsAllowed(String url) throws Exception {
             mvc.perform(options(url)
                             .header(HttpHeaders.ORIGIN, PAGES)
