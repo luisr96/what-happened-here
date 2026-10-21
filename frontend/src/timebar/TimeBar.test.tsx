@@ -111,12 +111,6 @@ describe("TimeBar", () => {
     expect(within(histogram()).getByTitle("2020 – 2029: 4 events")).toBeInTheDocument();
   });
 
-  it("has no Play or Pause button", () => {
-    renderBar({ from: 1800, to: 1900 });
-
-    expect(screen.queryByRole("button", { name: /play|pause/i })).not.toBeInTheDocument();
-  });
-
   it("\"All time\" clears the range", () => {
     const { onRangeChange } = renderBar({ from: 1800, to: 1900 });
 

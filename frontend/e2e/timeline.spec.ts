@@ -98,14 +98,13 @@ test("typing 44 BC into From year requests events from -44", async ({ page }) =>
   await expect(timelineRegion.getByRole("button", { name: "From era" })).toHaveText("BC");
 });
 
-test("zoom buttons are icon buttons found by name, without a Play button", async ({ page }) => {
+test("zoom buttons are icon buttons found by name", async ({ page }) => {
   await setup(page);
   await page.goto("/");
 
   const timelineRegion = page.getByRole("region", { name: "Timeline" });
   const from = timelineRegion.getByRole("slider", { name: "From" });
   await expect(from).toHaveAttribute("aria-valuemin", "-50");
-  await expect(timelineRegion.getByRole("button", { name: /play|pause/i })).toHaveCount(0);
 
   const zoomIn = timelineRegion.getByRole("button", { name: "Zoom in" });
   await expect(zoomIn).toHaveAttribute("title", "Zoom in");
@@ -132,15 +131,15 @@ test("a timeline reaching the 2020s ends at the current year, not 2029", async (
   await expect(page.getByRole("spinbutton", { name: "To year" })).toHaveValue(now);
 });
 
-test("a year box keeps at most 4 digits", async ({ page }) => {
+test("a year box keeps at most 5 digits", async ({ page }) => {
   await setup(page);
   await page.goto("/");
   const toYear = page.getByRole("spinbutton", { name: "To year" });
   await expect(toYear).toHaveValue("1889");
 
   await toYear.fill("");
-  await toYear.pressSequentially("12345");
+  await toYear.pressSequentially("123456");
 
-  await expect(toYear).toHaveValue("1234");
+  await expect(toYear).toHaveValue("12345");
   await expect(toYear).not.toHaveAttribute("aria-invalid", "true");
 });

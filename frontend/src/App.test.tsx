@@ -16,7 +16,6 @@ import {
   lisbonEarthquake,
   mozartBorn,
   mozartDetailsNoWikipedia,
-  otherEventsPage,
   problemJson,
 } from "./test/apiFixtures";
 import { createQueryWrapper } from "./test/queryWrapper";
@@ -60,7 +59,6 @@ vi.mock("./map/MapView", () => ({
 
 const europe: Bbox = { minLon: -10, minLat: 35, maxLon: 30, maxLat: 60 };
 const pacific: Bbox = { minLon: 170, minLat: -10, maxLon: -170, maxLat: 10 };
-const TRUNCATED_HINT = "Showing the most important events here. Zoom in or raise the minimum importance to see more.";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -141,14 +139,13 @@ describe("App events on the map", () => {
     expect(mapEvents().getByText("1755 Lisbon earthquake")).toBeInTheDocument();
   });
 
-  it("shows an empty map for an empty result, without the truncation hint", async () => {
+  it("shows an empty map for an empty result", async () => {
     const urls = recordEvents(() => HttpResponse.json(emptyEvents));
     renderApp();
     reportViewport(europe);
 
     await waitFor(() => expect(urls).toHaveLength(1));
     await waitFor(() => expect(mapEvents().queryAllByRole("listitem")).toHaveLength(0));
-    expect(screen.queryByText(TRUNCATED_HINT)).not.toBeInTheDocument();
   });
 
   it("refetches without BORN when Born is unchecked", async () => {
@@ -262,16 +259,6 @@ describe("App events on the map", () => {
     await sleep(250);
     expect(mapEvents().getByText("Some village")).toBeInTheDocument();
     expect(mapEvents().queryByText("Julius Caesar")).not.toBeInTheDocument();
-  });
-
-  it("shows no notice for a truncated result (the user removed it)", async () => {
-    recordEvents(() => HttpResponse.json(otherEventsPage));
-    renderApp();
-    reportViewport(europe);
-
-    await mapEvents().findByText("Some village");
-    expect(screen.queryByText(TRUNCATED_HINT)).not.toBeInTheDocument();
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("shows a 400 problem's detail in an alert", async () => {

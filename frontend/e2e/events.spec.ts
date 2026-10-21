@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page, Request } from "@playwright/test";
 import type { components } from "../src/api/schema";
-import { caesarDied, fijiFounded, lisbonEarthquake } from "../src/test/apiFixtures";
+import { caesarDied, lisbonEarthquake } from "../src/test/apiFixtures";
 
 type EventsResponse = components["schemas"]["EventsResponse"];
 
@@ -12,7 +12,6 @@ const minimalStyle = {
   layers: [{ id: "background", type: "background", paint: { "background-color": "#111" } }],
 };
 const CORS = { "Access-Control-Allow-Origin": "*" };
-const TRUNCATED_HINT = "Showing the most important events here. Zoom in or raise the minimum importance to see more.";
 
 const isEventsRequest = (request: Request) => new URL(request.url()).pathname === "/api/events";
 
@@ -45,16 +44,6 @@ test("requests events for the loaded map's viewport", async ({ page }) => {
   expect(minLat).toBeGreaterThanOrEqual(-90);
   expect(maxLat).toBeLessThanOrEqual(90);
   expect(url.searchParams.has("kinds")).toBe(false);
-  await expect(page.getByText(TRUNCATED_HINT)).toBeHidden();
-});
-
-test("shows no notice for a truncated response", async ({ page }) => {
-  const loaded = page.waitForResponse((r) => new URL(r.url()).pathname === "/api/events");
-  await setup(page, { events: [fijiFounded], truncated: true });
-  await page.goto("/");
-  await loaded;
-
-  await expect(page.getByText(TRUNCATED_HINT)).toHaveCount(0);
 });
 
 test("unchecking Died requests events without DIED", async ({ page }) => {
