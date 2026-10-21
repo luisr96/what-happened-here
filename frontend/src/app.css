@@ -775,11 +775,6 @@ body,
 }
 
 /* BC is the less usual era, so it's marked. */
-.year-field__era[data-era="bc"] {
-  background: var(--accent-soft);
-  color: var(--accent-hover);
-}
-
 .year-field__era:hover:not(:disabled) {
   background: var(--surface-active);
   color: var(--text);
