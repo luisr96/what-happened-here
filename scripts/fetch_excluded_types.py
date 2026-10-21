@@ -44,6 +44,21 @@ ROOTS = {
         "Q106562461", # Top 14 season
         "Q116621413", # season of the United Rugby Championship
     ],
+    # Museum objects: without own coordinates (P625) they keep only Born/Died events, since their
+    # place is just where they're kept today (The Cloisters Apocalypse, Q20201150, "in" New York).
+    # Narrow roots on purpose: "sculpture" or "visual artwork" pull in over 140,000 classes.
+    "artwork": [
+        "Q3305213",   # painting
+        "Q87167",     # manuscript
+        "Q93184",     # drawing
+        "Q184296",    # tapestry
+        "Q220659",    # archaeological artifact
+        "Q179700",    # statue
+        "Q245117",    # relief sculpture
+        "Q178743",    # stele
+        "Q191851",    # vase
+        "Q1066288",   # figurine
+    ],
 }
 
 # Branches the P279* tree pulls in by mistake, removed with all their subclasses.
@@ -53,6 +68,11 @@ NOT_EXCLUDED = {
         "Q16719003",  # thalassocratic period (history of Majapahit, Q1340213)
         "Q1896735",   # Marian year
         "Q2735933",   # anomalistic year
+    ],
+    # Under archaeological artifact, but remains, not art: a mummy's other events (found, put on
+    # show) are about the person and where they lay, so it keeps them all.
+    "artwork": [
+        "Q43616",     # mummy
     ],
 }
 

@@ -43,7 +43,7 @@ public final class WikidataExtractor {
      *
      * @param entity a bare entity, as one line of the dump or the inside of Special:EntityData
      * @return the item, or empty when it isn't a usable item (not an item, no Wikipedia
-     *     sitelink, fictional, coordinates only off Earth) or yields no events
+     *     sitelink, an excluded type, coordinates only off Earth) or yields no events
      */
     public Optional<ExtractedItem> extract(JsonNode entity) {
         if (entity == null || !entity.isObject() || !"item".equals(entity.path("type").asString(""))) {
@@ -62,6 +62,12 @@ public final class WikidataExtractor {
             return Optional.empty();
         }
         List<Event> events = events(claims, LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC));
+        if (ItemFacts.isArtwork(instanceOf) && placeCoordinates(entity) == null) {
+            // Without coordinates of its own a work of art is only placed where it's kept today
+            // (The Cloisters Apocalypse, Q20201150, made in France, "in" New York). Births and
+            // deaths stay: items typed as art include people and remains (Q25583326, a bog body).
+            events.removeIf(event -> event.kind() != Kind.BORN && event.kind() != Kind.DIED);
+        }
         if (events.isEmpty()) {
             return Optional.empty();
         }
@@ -69,6 +75,7 @@ public final class WikidataExtractor {
                 ItemFacts.wikiTitle(entity.path("sitelinks")), importance, instanceOf, events));
     }
 
+    /** A mutable list: extract() narrows it for works of art. */
     private static List<Event> events(JsonNode claims, LocalDate today) {
         Dates dates = new Dates(claims, today);
         List<Event> events = new ArrayList<>();

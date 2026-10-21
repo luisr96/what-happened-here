@@ -36,6 +36,7 @@ unknown).
 | King Arthur | Q45792 | Died 0600 J (century) at Q1028477; no Born (no P19) | Mythical character but also typed "human whose existence is disputed", so kept |
 | Hagar | Q214617 | Born -1930 J (year) at Q11768; no Died (no P20) | Film character but also typed "human biblical figure", so kept |
 | James L. Fields (sound engineer) | Q6137558 | No Born | P569 is `+1900` at millennium precision ("sometime 1001-2000"): a millennium after AD 1000 is too vague to place, so dropped like a future date (rule tested by Synthetic tests) |
+| Loschbour woman (Mesolithic remains) | Q25583326 | Born and Died only | Typed as an archaeological artifact (a work of art class) with no own P625: an artwork keeps only Born/Died, since remains and people typed as art still had a real life (rule tested by Synthetic tests) |
 | Zeus | Q34201 | Nothing | Deity with no dates or places; the type rule itself is tested by `synthetic-mythical` |
 
 ## Happened (point in time / start-end)
@@ -91,6 +92,7 @@ unknown).
 | 2022 FIFA World Cup | Q284163 | Happened 2022-11-20 to 2022-12-18 at Q1186333 | Tournament edition typed with the generic sports season Q27020041, which is kept |
 | Ivanovka without an English Wikipedia article | Q50829 | Events as usual, wikiTitle null | No enwiki sitelink; the item still passes the gate through other Wikipedias |
 | Zanclean (geologic stage, -5,333,000 to -3,600,000) | Q146094 | Nothing | Geologic time interval (stage/age); its GSSP coordinates would otherwise give Happened |
+| The Cloisters Apocalypse (illuminated manuscript) | Q20201150 | Nothing | Work of art (P31 Q48498, a subclass of manuscript) without own P625; would otherwise give Founded 1330 at New York City (Q60), where it is kept today, not where it was made |
 | Mozart with sitelinks removed (synthetic) | synthetic-no-sitelinks | Nothing | Sitelink gate |
 | Mozart with every P569 deprecated (synthetic) | synthetic-deprecated-only | Died only, no Born | Rank rules |
 | Mozart plus an earlier deprecated P569 (synthetic) | synthetic-deprecated-earlier | Born 1756-01-27 | Deprecated dropped before the earliest-date tie-break |

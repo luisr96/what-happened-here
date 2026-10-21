@@ -33,6 +33,10 @@ public final class ItemFacts {
     // stays, since tournament editions use it (2022 FIFA World Cup, Q284163).
     private static final Set<String> SEASON_TYPES = excludedTypes("season");
 
+    // Museum objects (paintings, manuscripts, statues, ...); without coordinates of their own
+    // they keep only their Born/Died events (see WikidataExtractor).
+    private static final Set<String> ARTWORK_TYPES = excludedTypes("artwork");
+
     // Real or possibly real people keep their events despite a fictional type: King Arthur
     // (Q45792) is also a disputed human, Hagar (Q214617) also a biblical figure.
     private static final Set<String> HUMAN_TYPES = Set.of(
@@ -149,6 +153,11 @@ public final class ItemFacts {
      */
     public static boolean isSeason(List<String> instanceOf) {
         return instanceOf.stream().anyMatch(SEASON_TYPES::contains);
+    }
+
+    /** True when the item is a work of art such as a painting, manuscript or statue. */
+    public static boolean isArtwork(List<String> instanceOf) {
+        return instanceOf.stream().anyMatch(ARTWORK_TYPES::contains);
     }
 
     /**

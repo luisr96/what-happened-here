@@ -81,7 +81,11 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
   be Q2), future dates, dates that may lie before 10,000 BC (earliest possible year < -10000,
   e.g. Q1673859 at 698,000 BC; such a P580 start is unusable, so the P585 fallback applies),
   millennium-precision dates in the 2nd millennium AD or later (earliest possible year > 1000;
-  Q6137558 "born 1900" at millennium precision), broken dates. Further exclusions are decided from looking at sample output, not guessed upfront.
+  Q6137558 "born 1900" at millennium precision), broken dates, and works of art (paintings,
+  manuscripts, statues, ...; not photographs or mummies: the "artwork" roots in the same script)
+  without coordinates of their own lose all but Born/Died events, since they'd only be placed where
+  they're kept today (Q20201150 "in" New York); people and remains typed as art keep their lives.
+  Further exclusions are decided from looking at sample output, not guessed upfront.
 
 ## Architecture
 | Piece | Job | Tech | Runs where |

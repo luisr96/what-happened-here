@@ -460,4 +460,38 @@ class ItemFactsTest {
     void missingSitelinksNodeGivesNoWikiTitle() {
         assertNull(ItemFacts.wikiTitle(json("{}").path("sitelinks")));
     }
+
+    // Q48498 (illuminated manuscript) is a subclass of manuscript, as for The Cloisters Apocalypse.
+    @Test
+    void illuminatedManuscriptIsArtwork() {
+        assertTrue(ItemFacts.isArtwork(List.of("Q48498")));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Q3305213", "Q87167", "Q93184", "Q184296", "Q220659", "Q179700", "Q245117",
+            "Q178743", "Q191851", "Q1066288"})
+    void eachArtworkRootAloneIsArtwork(String qid) {
+        assertTrue(ItemFacts.isArtwork(List.of(qid)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Q16970", "Q5", "Q515", "Q1123245", "Q116621413", "Q125191", "Q43616"})
+    void nonArtTypesAreNotArtwork(String qid) {
+        assertFalse(ItemFacts.isArtwork(List.of(qid)));
+    }
+
+    @Test
+    void emptyTypesAreNotArtwork() {
+        assertFalse(ItemFacts.isArtwork(List.of()));
+    }
+
+    @Test
+    void artworkTypeAmongOthersIsArtwork() {
+        assertTrue(ItemFacts.isArtwork(List.of("Q16970", "Q179700")));
+    }
+
+    @Test
+    void humanTypeDoesNotOverrideArtwork() {
+        assertTrue(ItemFacts.isArtwork(List.of("Q5", "Q3305213")));
+    }
 }

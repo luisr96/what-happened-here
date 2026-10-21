@@ -1198,6 +1198,215 @@ class WikidataExtractorTest {
             assertEquals(List.of("Q839954", "Q5"), item.instanceOf());
         }
 
+        /** Works of art without own Earth coordinates only have where they're kept today: no events. */
+        @Nested
+        class Artwork {
+
+            private static ObjectNode typed(String type) {
+                ObjectNode e = newEntity();
+                place(e, "P31", type);
+                return e;
+            }
+
+            private static void malformedCoords(ObjectNode e) {
+                ObjectNode bad = MAPPER.createObjectNode();
+                bad.put("latitude", 500.0);
+                bad.put("longitude", 10.0);
+                bad.put("precision", 0.0001);
+                bad.put("globe", PlaceValues.EARTH);
+                add(e, "P625", "normal", "globecoordinate", bad);
+            }
+
+            // Q20201150 (The Cloisters Apocalypse): illuminated manuscript kept in New York City.
+            @Test
+            void illuminatedManuscriptWithOnlyAdminAreaProducesNothing() {
+                ObjectNode e = typed("Q48498");
+                date(e, "P571", "+1330-00-00T00:00:00Z", 9);
+                place(e, "P131", "Q60");
+                assertNothing(e);
+            }
+
+            @Test
+            void paintingWithOnlyLocationProducesNothing() {
+                ObjectNode e = typed("Q3305213");
+                date(e, "P571", "+1503-00-00T00:00:00Z", 9);
+                date(e, "P585", "+1503-00-00T00:00:00Z", 9);
+                place(e, "P276", "Q19675");
+                place(e, "P131", "Q90");
+                assertNothing(e);
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"Q3305213", "Q87167", "Q48498", "Q93184", "Q184296", "Q220659", "Q179700",
+                "Q245117", "Q178743", "Q191851", "Q1066288"})
+            void eachArtworkRootWithoutCoordinatesProducesNothing(String type) {
+                ObjectNode e = typed(type);
+                date(e, "P571", "+1900-01-01T00:00:00Z", 11);
+                place(e, "P131", "Q60");
+                assertNothing(e);
+            }
+
+            // The art type need not be the first P31 value.
+            @Test
+            void artworkTypeAmongOthersProducesNothing() {
+                ObjectNode e = typed("Q16970");
+                place(e, "P31", "Q179700");
+                date(e, "P571", "+1900-01-01T00:00:00Z", 11);
+                place(e, "P131", "Q60");
+                assertNothing(e);
+            }
+
+            // Every kind is dropped, not just Founded.
+            @Test
+            void artworkWithoutCoordinatesDropsHappenedOpenedAndEndedToo() {
+                ObjectNode e = typed("Q179700");
+                date(e, "P585", "+1900-01-01T00:00:00Z", 11);
+                date(e, "P1619", "+1901-01-01T00:00:00Z", 11);
+                date(e, "P576", "+1950-01-01T00:00:00Z", 11);
+                place(e, "P276", "Q1");
+                place(e, "P131", "Q60");
+                assertNothing(e);
+            }
+
+            @Test
+            void artworkWithOnlyMalformedCoordinatesProducesNothing() {
+                ObjectNode e = typed("Q3305213");
+                malformedCoords(e);
+                date(e, "P571", "+1900-01-01T00:00:00Z", 11);
+                place(e, "P131", "Q1");
+                assertNothing(e);
+            }
+
+            @Test
+            void artworkWithOnlyDeprecatedEarthCoordinatesProducesNothing() {
+                ObjectNode e = typed("Q179700");
+                add(e, "P625", "deprecated", "globecoordinate", coordinate(40.69, -74.04, 0.0001));
+                date(e, "P571", "+1886-10-28T00:00:00Z", 11);
+                place(e, "P131", "Q60");
+                assertNothing(e);
+            }
+
+            // Statue of Liberty style: an outdoor statue with its own coordinates keeps its events.
+            @Test
+            void statueWithOwnCoordinatesKeepsFounded() {
+                ObjectNode e = typed("Q179700");
+                coords(e, 40.69, -74.04);
+                date(e, "P571", "+1886-10-28T00:00:00Z", 11);
+                place(e, "P131", "Q60");
+                var item = extracted(e);
+                assertKinds(item, Kind.FOUNDED);
+                Coordinates c = assertOwnCoords(event(item, Kind.FOUNDED));
+                assertEquals(40.69, c.latitude(), 1e-9);
+                assertEquals(-74.04, c.longitude(), 1e-9);
+            }
+
+            // A malformed value beside a usable Earth one still counts as having own coordinates.
+            @Test
+            void artworkWithMalformedThenUsableCoordinatesKeepsEvents() {
+                ObjectNode e = typed("Q178743");
+                malformedCoords(e);
+                coords(e, 30, 31);
+                date(e, "P571", "-0196-00-00T00:00:00Z", 9);
+                var item = extracted(e);
+                assertKinds(item, Kind.FOUNDED);
+                assertEquals(30, assertOwnCoords(event(item, Kind.FOUNDED)).latitude(), 1e-9);
+            }
+
+            @Test
+            void artworkWithMoonAndEarthCoordinatesKeepsEvents() {
+                ObjectNode e = typed("Q179700");
+                coords(e, 10, 10, MOON);
+                coords(e, 20, 30);
+                date(e, "P571", "+1900-01-01T00:00:00Z", 11);
+                assertKinds(extracted(e), Kind.FOUNDED);
+            }
+
+            @Test
+            void nonArtBuildingWithoutCoordinatesKeepsFounded() {
+                ObjectNode e = typed("Q16970");
+                date(e, "P571", "+1330-00-00T00:00:00Z", 9);
+                place(e, "P131", "Q60");
+                var item = extracted(e);
+                assertKinds(item, Kind.FOUNDED);
+                assertAt(event(item, Kind.FOUNDED), "Q60");
+            }
+
+            // A photograph's date and place usually say where and when it was taken: a real event.
+            @Test
+            void photographWithoutCoordinatesKeepsHappened() {
+                ObjectNode e = typed("Q125191");
+                date(e, "P585", "+1945-02-23T00:00:00Z", 11);
+                place(e, "P276", "Q1");
+                place(e, "P131", "Q3");
+                var item = extracted(e);
+                assertKinds(item, Kind.HAPPENED);
+                assertAt(event(item, Kind.HAPPENED), "Q1");
+            }
+
+            // Mummies sit under archaeological artifact but are people: birth and death are real events.
+            @Test
+            void mummyWithoutCoordinatesKeepsBornAndDied() {
+                ObjectNode e = typed("Q43616");
+                date(e, "P569", "-1341-00-00T00:00:00Z", 9);
+                place(e, "P19", "Q1");
+                date(e, "P570", "-1323-00-00T00:00:00Z", 9);
+                place(e, "P20", "Q2");
+                var item = extracted(e);
+                assertKinds(item, Kind.BORN, Kind.DIED);
+                assertAt(event(item, Kind.BORN), "Q1");
+                assertAt(event(item, Kind.DIED), "Q2");
+            }
+
+            @Test
+            void humanMummyWithoutCoordinatesKeepsBornAndDied() {
+                ObjectNode e = typed("Q5");
+                place(e, "P31", "Q43616");
+                date(e, "P569", "-1341-00-00T00:00:00Z", 9);
+                place(e, "P19", "Q1");
+                date(e, "P570", "-1323-00-00T00:00:00Z", 9);
+                place(e, "P20", "Q2");
+                assertKinds(extracted(e), Kind.BORN, Kind.DIED);
+            }
+
+            // Birth and death places are places in a life, not where the work is kept today.
+            @Test
+            void paintingTypedPersonWithoutCoordinatesKeepsBornAndDiedOnly() {
+                ObjectNode e = typed("Q5");
+                place(e, "P31", "Q3305213");
+                date(e, "P569", "+1370-00-00T00:00:00Z", 9);
+                place(e, "P19", "Q1");
+                date(e, "P570", "+1443-01-16T00:00:00Z", 11);
+                place(e, "P20", "Q2");
+                date(e, "P571", "+1453-00-00T00:00:00Z", 9);
+                place(e, "P131", "Q3");
+                var item = extracted(e);
+                assertKinds(item, Kind.BORN, Kind.DIED);
+                assertAt(event(item, Kind.BORN), "Q1");
+                assertAt(event(item, Kind.DIED), "Q2");
+            }
+
+            // Loschbour woman (Q25583326): human remains typed under archaeological artifact.
+            @Test
+            void archaeologicalArtifactWithDeathKeepsDied() {
+                ObjectNode e = typed("Q220659");
+                date(e, "P570", "-6000-00-00T00:00:00Z", 9);
+                place(e, "P20", "Q2");
+                var item = extracted(e);
+                assertKinds(item, Kind.DIED);
+                assertAt(event(item, Kind.DIED), "Q2");
+            }
+
+            // Only P31 counts: an art class elsewhere (e.g. P279 on a class item) is not a type.
+            @Test
+            void artClassOutsideInstanceOfDoesNotExclude() {
+                ObjectNode e = typed("Q16970");
+                place(e, "P279", "Q179700");
+                date(e, "P571", "+1330-00-00T00:00:00Z", 9);
+                place(e, "P131", "Q60");
+                assertKinds(extracted(e), Kind.FOUNDED);
+            }
+        }
+
         /** P582 certainly earlier than P580 (compared at the coarser precision) is an unusable end. */
         @Nested
         class ReversedRange {
