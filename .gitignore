@@ -38,3 +38,5 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+# The server's real settings (deploy/.env.example shows the shape).
+deploy/.env
