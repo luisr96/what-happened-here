@@ -11,6 +11,8 @@ COPY gradle gradle
 COPY extractor/build.gradle.kts extractor/
 COPY sampler/build.gradle.kts sampler/
 COPY api/build.gradle.kts api/
+# settings.gradle.kts lists every subproject, so Gradle needs each one's build file to configure.
+COPY importer/build.gradle.kts importer/
 RUN chmod +x gradlew && ./gradlew --no-daemon --quiet :api:dependencies
 COPY extractor/src extractor/src
 COPY api/src api/src
