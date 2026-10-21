@@ -202,7 +202,7 @@ describe("App events on the map", () => {
 
   it.each([
     ["Notable", "50"],
-    ["Famous", "100"],
+    ["Iconic", "100"],
   ])("requests minImportance right away when %s is chosen (no debounce)", async (name, value) => {
     const user = userEvent.setup();
     const urls = recordEvents();
@@ -224,7 +224,7 @@ describe("App events on the map", () => {
     reportViewport(europe);
     expect(await mapEvents().findByText("Julius Caesar")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("radio", { name: "Famous" }));
+    await user.click(screen.getByRole("radio", { name: "Iconic" }));
     await waitFor(() => expect(urls.at(-1)?.searchParams.get("minImportance")).toBe("100"), { timeout: 100 });
     await waitFor(() => expect(mapEvents().queryByText("Julius Caesar")).not.toBeInTheDocument());
 

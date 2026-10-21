@@ -7,7 +7,7 @@
 export const IMPORTANCE_BUCKETS = [
   { id: "all", label: "All", minImportance: 0, title: "Every event" },
   { id: "notable", label: "Notable", minImportance: 50, title: "Covered by 50+ Wikipedia languages" },
-  { id: "famous", label: "Famous", minImportance: 100, title: "Covered by 100+ Wikipedia languages" },
+  { id: "iconic", label: "Iconic", minImportance: 100, title: "Covered by 100+ Wikipedia languages" },
 ] as const;
 
 export type ImportanceBucket = (typeof IMPORTANCE_BUCKETS)[number];

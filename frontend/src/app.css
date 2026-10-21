@@ -124,6 +124,302 @@ body,
   box-shadow: 0 2px 4px rgb(0 0 0 / 30%), 0 12px 32px rgb(0 0 0 / 50%);
 }
 
+/* About: a centred modal over a dimmed, softly blurred map. One column: title, lead, a card of
+   numbers, how it's built, and a footer with the source link. */
+.about__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgb(6 8 12 / 62%);
+  backdrop-filter: blur(3px);
+  animation: about-fade 0.16s ease-out;
+}
+
+.about__dialog {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 24px;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: var(--panel-solid);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 4%),
+    0 2px 6px rgb(0 0 0 / 30%),
+    0 24px 64px rgb(0 0 0 / 55%);
+  color: var(--text-secondary);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  animation: about-rise 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.about__dialog p {
+  margin: 0;
+}
+
+.about__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.about__title {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.about__close {
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px 0 0;
+}
+
+/* Getting started: a numbered list, each number in a small circle. */
+.about__steps {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  counter-reset: about-step;
+  font-size: 14px;
+}
+
+.about__steps li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+  counter-increment: about-step;
+}
+
+.about__steps li::before {
+  content: counter(about-step);
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.about__dialog .about__source-note {
+  margin-bottom: 20px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.about__dialog .about__lead {
+  margin: var(--space-2) 0 var(--space-3);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* The numbers: one quiet card. Totals as large figures over their units, then the kinds. */
+.about__numbers {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.about__dialog .about__numbers--state {
+  display: grid;
+  place-items: center;
+  min-height: 176px;
+  color: var(--text-muted);
+}
+
+.about__totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.about__dialog .about__stat {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  line-height: 1.3;
+}
+
+.about__stat strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* All events as one bar, each kind a slice in proportion; hairline gaps keep slices distinct
+   and the smallest ones keep a sliver so they never vanish. */
+.about__share {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+.about__slice {
+  flex-basis: 0;
+  min-width: 3px;
+  background: var(--kind);
+}
+
+/* The key: three across, in the bar's order, read like a sentence (left to right, then down).
+   Each entry is a quiet label with its dot, and the figure beneath it. */
+.about__kinds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about__kind {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  grid-template-areas: "dot label" ". value";
+  align-items: center;
+  column-gap: 7px;
+  row-gap: 1px;
+}
+
+.about__kind .kinds__swatch {
+  grid-area: dot;
+  width: 7px;
+  height: 7px;
+  box-shadow: none;
+}
+
+.about__kind-label {
+  grid-area: label;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about__value {
+  grid-area: value;
+  white-space: nowrap;
+}
+
+.about__percent {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.about__count {
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.about__dialog .about__note {
+  margin-top: 14px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.about__section {
+  margin-top: 22px;
+}
+
+.about__label {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The stack: a wrapping row of chips, each a monochrome logo and its name. */
+.about__stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about__tech {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 11px 0 9px;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.about__tech svg {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.about__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--divider);
+}
+
+@keyframes about-fade {
+  from { opacity: 0; }
+}
+
+@keyframes about-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about__backdrop,
+  .about__dialog {
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .about__dialog {
+    padding: 20px 18px;
+  }
+
+  .about__kinds {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Section titles: small caps-style labels, the top of every panel's hierarchy. */
 .panel-section__header {
   display: flex;
@@ -131,6 +427,13 @@ body,
   justify-content: space-between;
   min-height: var(--control-h);
   margin-bottom: var(--space-3);
+}
+
+/* Header actions side by side (About, Settings). */
+.panel-section__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .panel-section__header h2,
@@ -527,7 +830,7 @@ body,
   box-shadow: none;
 }
 
-/* Label above, the All / Notable / Famous switch across the panel's full width below. */
+/* Label above, the All / Notable / Iconic switch across the panel's full width below. */
 .importance {
   display: flex;
   flex-direction: column;

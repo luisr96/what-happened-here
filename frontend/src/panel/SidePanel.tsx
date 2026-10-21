@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { AboutMenu } from "../about/AboutMenu";
 import type { Kind } from "../api/client";
 import { KINDS, kindLabel, kindStyle } from "../map/kinds";
 import type { Settings } from "../settings/settings";
@@ -33,9 +34,12 @@ export function SidePanel({
         <section className="panel-section">
           <div className="panel-section__header">
             <h2>Filters</h2>
-            {settings !== undefined && onSettingsChange !== undefined && (
-              <SettingsMenu settings={settings} onChange={onSettingsChange} />
-            )}
+            <div className="panel-section__actions">
+              <AboutMenu />
+              {settings !== undefined && onSettingsChange !== undefined && (
+                <SettingsMenu settings={settings} onChange={onSettingsChange} />
+              )}
+            </div>
           </div>
           <fieldset className="kinds">
             <legend className="field-label">Events</legend>
@@ -53,7 +57,7 @@ export function SidePanel({
             ))}
           </fieldset>
           <div role="radiogroup" aria-labelledby={importanceId} className="importance">
-            <span id={importanceId} className="field-label">Importance</span>
+            <span id={importanceId} className="field-label">Show</span>
             <div className="segmented">
               {IMPORTANCE_BUCKETS.map((bucket) => (
                 <label key={bucket.id} className="segmented__option" title={bucket.title}>

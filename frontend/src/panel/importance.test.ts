@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { IMPORTANCE_BUCKETS, bucketFor } from "./importance";
 
 describe("IMPORTANCE_BUCKETS", () => {
-  it("lists All, Notable and Famous with thresholds 0, 50 and 100", () => {
+  it("lists All, Notable and Iconic with thresholds 0, 50 and 100", () => {
     expect(IMPORTANCE_BUCKETS.map((b) => [b.id, b.label, b.minImportance])).toEqual([
       ["all", "All", 0],
       ["notable", "Notable", 50],
-      ["famous", "Famous", 100],
+      ["iconic", "Iconic", 100],
     ]);
   });
 
@@ -25,8 +25,8 @@ describe("bucketFor", () => {
     [49, "all"],
     [50, "notable"],
     [99, "notable"],
-    [100, "famous"],
-    [500, "famous"],
+    [100, "iconic"],
+    [500, "iconic"],
   ])("maps minImportance %i to %s", (minImportance, id) => {
     expect(bucketFor(minImportance).id).toBe(id);
   });

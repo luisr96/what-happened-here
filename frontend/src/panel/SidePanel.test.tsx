@@ -142,12 +142,12 @@ describe("SidePanel filters", () => {
     expect(onKindsChange).toHaveBeenCalledWith(["HAPPENED", "BORN", "FOUNDED", "ENDED", "OPENED"]);
   });
 
-  it("shows a radio group named Importance with All, Notable and Famous in that order", () => {
+  it("shows a radio group named Show with All, Notable and Iconic in that order", () => {
     render(<SidePanel {...props()} />);
-    const group = screen.getByRole("radiogroup", { name: "Importance" });
+    const group = screen.getByRole("radiogroup", { name: "Show" });
     const radios = within(group).getAllByRole("radio");
     expect(radios).toHaveLength(3);
-    for (const [i, name] of ["All", "Notable", "Famous"].entries()) {
+    for (const [i, name] of ["All", "Notable", "Iconic"].entries()) {
       expect(within(group).getByRole("radio", { name })).toBe(radios[i]);
     }
     expect(screen.queryByRole("slider")).not.toBeInTheDocument();
@@ -158,13 +158,13 @@ describe("SidePanel filters", () => {
     render(<SidePanel {...props()} />);
     const filters = screen.getByRole("heading", { name: "Filters" }).closest("section");
     expect(filters).not.toBeNull();
-    expect(filters).toContainElement(screen.getByRole("radiogroup", { name: "Importance" }));
+    expect(filters).toContainElement(screen.getByRole("radiogroup", { name: "Show" }));
   });
 
   it.each([
     ["All", "Every event"],
     ["Notable", "Covered by 50+ Wikipedia languages"],
-    ["Famous", "Covered by 100+ Wikipedia languages"],
+    ["Iconic", "Covered by 100+ Wikipedia languages"],
   ])("explains %s in a title tooltip on its label", (name, title) => {
     render(<SidePanel {...props()} />);
     const radio = screen.getByRole("radio", { name });
@@ -178,11 +178,11 @@ describe("SidePanel filters", () => {
     [49, "All"],
     [50, "Notable"],
     [99, "Notable"],
-    [100, "Famous"],
-    [500, "Famous"],
+    [100, "Iconic"],
+    [500, "Iconic"],
   ])("checks exactly the bucket for minImportance %i (%s)", (minImportance, name) => {
     render(<SidePanel {...props({ minImportance })} />);
-    for (const other of ["All", "Notable", "Famous"]) {
+    for (const other of ["All", "Notable", "Iconic"]) {
       const radio = screen.getByRole("radio", { name: other });
       if (other === name) expect(radio).toBeChecked();
       else expect(radio).not.toBeChecked();
@@ -191,7 +191,7 @@ describe("SidePanel filters", () => {
 
   it.each([
     ["Notable", 0, 50],
-    ["Famous", 0, 100],
+    ["Iconic", 0, 100],
     ["All", 100, 0],
   ])("choosing %s reports its threshold", async (name, start, expected) => {
     const user = userEvent.setup();
@@ -215,7 +215,7 @@ describe("SidePanel filters", () => {
   it("is controlled: the checked radio follows the minImportance prop", () => {
     const { rerender } = render(<SidePanel {...props({ minImportance: 0 })} />);
     rerender(<SidePanel {...props({ minImportance: 100 })} />);
-    expect(screen.getByRole("radio", { name: "Famous" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Iconic" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "All" })).not.toBeChecked();
   });
 });

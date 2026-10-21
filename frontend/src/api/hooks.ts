@@ -9,6 +9,7 @@ export type EventsResponse = Schemas["EventsResponse"];
 export type EventView = Schemas["EventView"];
 export type EventDetails = Schemas["EventDetails"];
 export type TimelineResponse = Schemas["TimelineResponse"];
+export type StatsSummary = Schemas["StatsSummary"];
 
 export type EventsQuery = {
   readonly bbox: Bbox;
@@ -81,6 +82,18 @@ export function useNearby(query: NearbyQuery | null): UseQueryResult<EventsRespo
     // While a moved or resized search loads, the list it replaces stays. A new click gets a new
     // panel (App keys it per click), whose fresh query observer has no previous list to keep.
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Whole-dataset numbers for the About dialog. They only change with a re-import, so one fetch
+ * serves the whole visit.
+ */
+export function useStatsSummary(): UseQueryResult<StatsSummary, ApiError> {
+  return useQuery({
+    queryKey: ["stats-summary"],
+    queryFn: ({ signal }) => apiGet<StatsSummary>("/stats/summary", {}, signal),
+    staleTime: Infinity,
   });
 }
 

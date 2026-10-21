@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bbox } from "./api/client";
+import { ABOUT_SEEN_KEY } from "./about/aboutSeen";
 import { App } from "./App";
 import { caesarDied, emptyEvents } from "./test/apiFixtures";
 import { createQueryWrapper } from "./test/queryWrapper";
@@ -31,6 +32,7 @@ const rome: Place = { lat: 41.9, lon: 12.5, radius: 2293 };
 
 beforeEach(() => {
   localStorage.clear();
+  localStorage.setItem(ABOUT_SEEN_KEY, "1");
   mapView.mapStyleUrl = undefined;
   server.use(
     http.get("*/api/events", () => HttpResponse.json(emptyEvents)),

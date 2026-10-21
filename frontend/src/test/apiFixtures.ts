@@ -112,3 +112,22 @@ export const badBboxProblem: ProblemDetail = {
 };
 
 export const problemJson = { "Content-Type": "application/problem+json" } as const;
+
+type StatsSummary = components["schemas"]["StatsSummary"];
+
+/** Whole-dataset numbers shaped like the real import (earliest year 10,000 BC). */
+export const statsSummary: StatsSummary = {
+  events: 5720295,
+  places: 322591,
+  eventsByKind: {
+    HAPPENED: 192249,
+    BORN: 2982422,
+    DIED: 1287177,
+    FOUNDED: 952643,
+    ENDED: 157511,
+    OPENED: 148293,
+  },
+  earliestYear: -10000,
+  latestYear: 2100,
+  dumpDate: "2026-10-12",
+};

@@ -136,8 +136,7 @@ periodic full re-import from a fresh dump is the safety net.
 - Hover tooltips: label, kind, formatted date.
 - Dark, collapsible left side panel: filters (kinds, minimum importance) and the settings gear
   (distance units, map style; Liberty by default).
-- Time bar along the bottom: the /stats/timeline histogram, a draggable range that sets from/to,
-  and a play button that animates the range forward through time.
+- Time bar along the bottom: the /stats/timeline histogram, and a draggable range that sets from/to.
 - Server data through TanStack Query (caching, cancelling stale requests, keeping previous
   data while panning); UI state in plain React state; no global store.
 

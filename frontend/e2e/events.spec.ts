@@ -73,7 +73,7 @@ test("unchecking Died requests events without DIED", async ({ page }) => {
   expect(kinds).toEqual(["HAPPENED", "BORN", "FOUNDED", "ENDED", "OPENED"]);
 });
 
-test("choosing Famous requests events with minImportance=100", async ({ page }) => {
+test("choosing Iconic requests events with minImportance=100", async ({ page }) => {
   await setup(page, { events: [caesarDied], truncated: false });
   const first = page.waitForRequest(isEventsRequest);
   await page.goto("/");
@@ -83,10 +83,10 @@ test("choosing Famous requests events with minImportance=100", async ({ page }) 
   const filtered = page.waitForRequest(
     (r) => isEventsRequest(r) && new URL(r.url()).searchParams.get("minImportance") === "100",
   );
-  const importance = page.getByRole("radiogroup", { name: "Importance" });
-  await importance.getByRole("radio", { name: "Famous" }).check();
+  const importance = page.getByRole("radiogroup", { name: "Show" });
+  await importance.getByRole("radio", { name: "Iconic" }).check();
 
   await filtered;
-  await expect(importance.getByRole("radio", { name: "Famous" })).toBeChecked();
+  await expect(importance.getByRole("radio", { name: "Iconic" })).toBeChecked();
   await expect(page.getByRole("group", { name: "Events" }).getByRole("checkbox")).toHaveCount(6);
 });
