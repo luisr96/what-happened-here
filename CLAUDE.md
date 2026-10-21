@@ -86,6 +86,11 @@ Not used on purpose: P577 publication date (would flood the data with scholarly 
   without coordinates of their own lose all but Born/Died events, since they'd only be placed where
   they're kept today (Q20201150 "in" New York); people and remains typed as art keep their lives.
   Further exclusions are decided from looking at sample output, not guessed upfront.
+- Single events known to be wrong in Wikidata (a same-named place, Q4086877 "Muhammad in Medina"
+  in Ohio; a typo year, Q553338 born in year 1) are listed by hand in the extractor's
+  `excluded-events.tsv` (QID, kind, reason) and dropped. General rules were measured first and
+  removed more good data than bad (e.g. "event older than its place": countries and Japanese
+  cities carry modern founding dates).
 
 ## Architecture
 | Piece | Job | Tech | Runs where |

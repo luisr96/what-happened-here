@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import tools.jackson.databind.JsonNode;
 
 /** Facts about a whole item, read once per entity rather than per event. */
@@ -36,6 +37,14 @@ public final class ItemFacts {
     // Museum objects (paintings, manuscripts, statues, ...); without coordinates of their own
     // they keep only their Born/Died events (see WikidataExtractor).
     private static final Set<String> ARTWORK_TYPES = excludedTypes("artwork");
+
+    // Single events known to be wrong in Wikidata, kept by hand in excluded-events.tsv
+    // (Q4086877 "Muhammad in Medina" is placed in Medina, Ohio).
+    private static final Set<ExcludedEvent> EXCLUDED_EVENTS = resourceLines("/excluded-events.tsv")
+            .map(ItemFacts::excludedEvent)
+            .collect(Collectors.toUnmodifiableSet());
+
+    private record ExcludedEvent(String itemId, Event.Kind kind) {}
 
     // Real or possibly real people keep their events despite a fictional type: King Arthur
     // (Q45792) is also a disputed human, Hagar (Q214617) also a biblical figure.
@@ -155,9 +164,40 @@ public final class ItemFacts {
         return instanceOf.stream().anyMatch(SEASON_TYPES::contains);
     }
 
+    /** True when this one event of the item is on the hand-kept list of known Wikidata errors. */
+    public static boolean isExcludedEvent(String itemId, Event.Kind kind) {
+        return EXCLUDED_EVENTS.contains(new ExcludedEvent(itemId, kind));
+    }
+
+    // QID<TAB>KIND<TAB>reason; a bad line is a build mistake, so it fails at class load, named.
+    private static ExcludedEvent excludedEvent(String line) {
+        String[] fields = line.split("\t");
+        try {
+            return new ExcludedEvent(fields[0], Event.Kind.valueOf(fields[1]));
+        } catch (ArrayIndexOutOfBoundsException | IllegalArgumentException e) {
+            throw new IllegalStateException("excluded-events.tsv: bad line: " + line, e);
+        }
+    }
+
     /** True when the item is a work of art such as a painting, manuscript or statue. */
     public static boolean isArtwork(List<String> instanceOf) {
         return instanceOf.stream().anyMatch(ARTWORK_TYPES::contains);
+    }
+
+    /**
+     * The non-blank, non-comment lines of a classpath resource; a missing one is a build mistake.
+     * Read eagerly: the reader is closed before the caller uses the stream.
+     */
+    private static Stream<String> resourceLines(String resource) {
+        InputStream in = ItemFacts.class.getResourceAsStream(resource);
+        if (in == null) {
+            throw new IllegalStateException(resource + " missing from the classpath");
+        }
+        try (var reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            return reader.lines().filter(line -> !line.isBlank() && !line.startsWith("#")).toList().stream();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     /**
@@ -165,24 +205,15 @@ public final class ItemFacts {
      * A missing file or empty category fails at class load: it is a build mistake, not bad data.
      */
     private static Set<String> excludedTypes(String category) {
-        InputStream in = ItemFacts.class.getResourceAsStream("/excluded-types.tsv");
-        if (in == null) {
-            throw new IllegalStateException("excluded-types.tsv missing from the classpath");
+        Set<String> types = resourceLines("/excluded-types.tsv")
+                .map(line -> line.split("\t"))
+                .filter(fields -> fields.length == 2 && fields[1].equals(category))
+                .map(fields -> fields[0])
+                .collect(Collectors.toUnmodifiableSet());
+        if (types.isEmpty()) {
+            throw new IllegalStateException("No excluded types for category " + category);
         }
-        try (var reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-            Set<String> types = reader.lines()
-                    .filter(line -> !line.isBlank() && !line.startsWith("#"))
-                    .map(line -> line.split("	"))
-                    .filter(fields -> fields.length == 2 && fields[1].equals(category))
-                    .map(fields -> fields[0])
-                    .collect(Collectors.toUnmodifiableSet());
-            if (types.isEmpty()) {
-                throw new IllegalStateException("No excluded types for category " + category);
-            }
-            return types;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return types;
     }
 
     private static String labelIn(JsonNode labels, String language) {

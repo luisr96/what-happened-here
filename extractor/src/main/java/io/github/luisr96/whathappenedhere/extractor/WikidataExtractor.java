@@ -68,6 +68,7 @@ public final class WikidataExtractor {
             // deaths stay: items typed as art include people and remains (Q25583326, a bog body).
             events.removeIf(event -> event.kind() != Kind.BORN && event.kind() != Kind.DIED);
         }
+        events.removeIf(event -> ItemFacts.isExcludedEvent(id.stringValue(), event.kind()));
         if (events.isEmpty()) {
             return Optional.empty();
         }

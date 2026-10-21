@@ -1,0 +1,46 @@
+# Individual events known to be wrong in Wikidata, dropped by the extractor: QID<TAB>KIND<TAB>reason.
+# Found by looking at the map and data (2026-10-21). Fixing the statement on Wikidata too is welcome; the
+# next full import would then produce the right event, and the line can go.
+Q553338	BORN	Omar Metwally: birth year entered as 1
+Q1153032	FOUNDED	Roc-A-Fella Records: founding year entered as 1203 (really 1995)
+Q1315810	FOUNDED	Mexican Texas: founding year entered as 1400 (really 1821)
+Q1366992	BORN	William Cornysh the Younger: birthplace is East Greenwich, Rhode Island (Q999257), not East Greenwich, England
+Q3154588	BORN	Irvin Blais: birth year entered as 1000
+Q3456634	FOUNDED	Réseau d'informations scientifiques du Québec: founding year entered as 198
+Q3536747	HAPPENED	treaty of Bayonne: location is Bayonne, New Jersey (Q812589), not Bayonne, France
+Q3536784	HAPPENED	Treaty of Durham: the 1136 treaty; location is Durham, North Carolina (Q49229), not Durham, England
+Q4086877	HAPPENED	Muhammad in Medina: location is Medina, Ohio (Q527887), not Medina in Saudi Arabia
+Q4755078	DIED	Andrea Fay Friedman: death year entered as 33
+Q5347096	BORN	Eenasul Fateh: birth year entered as 3
+Q5678943	FOUNDED	Partido Cruzada Ciudadana: founding year entered as 9
+Q5696082	DIED	José Manuel Estrada: death year entered as 1
+Q6063971	FOUNDED	Partido Conciencia Popular: founding year entered as 4
+Q6113726	FOUNDED	Ruptura 25: founding year entered as 12
+Q6162394	BORN	Jason Douglas: birth year entered as 173
+Q6213507	BORN	Torhall Veideman: birth year entered as 901
+Q6226281	BORN	John Claymond: birthplace is Lincoln County, West Virginia (Q495151), not Lincolnshire, England
+Q6831282	BORN	Michael Hughes: birth year entered as 9 BC
+Q12053938	BORN	Kirker Butler: birth year entered as 14
+Q15984938	FOUNDED	Broad Front UNEN: founding year entered as 13
+Q16146485	BORN	Anthony C. Ferrante: birth year entered as 30
+Q18359023	BORN	Victory Van Tuyl: birth year entered as 16
+Q61110681	BORN	Josiah Hogan: birth year entered as 986
+Q66424636	BORN	Manuel Rodriguez-Saenz: birth year entered as 14
+Q107081893	BORN	Natalie Robbie: birth year entered as 11
+Q110969055	HAPPENED	Treaty of Durham: the 1212 treaty (a separate item); location is Durham, North Carolina (Q49229), not Durham, England
+Q111396985	BORN	Delon de Metz: birth year entered as 9
+Q111550304	BORN	Robert Aberdeen: birth year entered as 6
+Q111603345	BORN	Philip Pryor: birth year entered as 177
+Q111753251	HAPPENED	Verizon 200 at the Brickyard: date year entered as 200
+Q112043462	BORN	Cherish Holland: birth year entered as 8
+Q117805695	BORN	Phyllis Spielman: birth year entered as 7
+Q119169302	BORN	Emilia Torello: birth year entered as 20
+Q124219783	BORN	Geena Alexandra: birth year entered as 27
+Q124427869	HAPPENED	Treaty of Louviers: location is Louviers, Colorado (Q2119403), not Louviers, France
+Q125736521	BORN	Audrey Ellis Fox: birth year entered as 3
+Q127827360	BORN	Rae Latt: birth year entered as 17
+Q130563625	BORN	Joyce Higgins de Ginatta: birth year entered as 27
+Q132243578	BORN	Lisa Cole: birth year entered as 1
+Q136407392	BORN	E. R. Ruiz: birth year entered as 8
+Q138496221	BORN	Meggan Manlove: birth year entered as 26
+Q138566476	BORN	Okan Seese: birth year entered as 20

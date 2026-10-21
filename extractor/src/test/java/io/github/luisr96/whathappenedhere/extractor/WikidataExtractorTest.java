@@ -1599,4 +1599,57 @@ class WikidataExtractorTest {
             assertNull(new Event(Kind.BORN, date, null, place).endDate());
         }
     }
+
+    /** Events listed in {@code excluded-events.tsv} are dropped one by one, not the whole item. */
+    @Nested
+    class ExcludedEvents {
+
+        private static ObjectNode withId(String id) {
+            ObjectNode e = Synthetic.newEntity();
+            e.put("id", id);
+            return e;
+        }
+
+        @Test
+        void muhammadInMedinaKeepsFoundedButLosesHappened() {
+            ObjectNode e = withId("Q4086877");
+            Synthetic.date(e, "P585", "+0622-01-01T00:00:00Z", 9);
+            Synthetic.place(e, "P276", "Q1");
+            Synthetic.date(e, "P571", "+0622-01-01T00:00:00Z", 9);
+            Synthetic.place(e, "P131", "Q2");
+            assertKinds(extracted(e), Kind.FOUNDED);
+        }
+
+        @Test
+        void sameEntityUnderAnotherIdKeepsHappened() {
+            ObjectNode e = withId("Q999");
+            Synthetic.date(e, "P585", "+0622-01-01T00:00:00Z", 9);
+            Synthetic.place(e, "P276", "Q1");
+            Synthetic.date(e, "P571", "+0622-01-01T00:00:00Z", 9);
+            Synthetic.place(e, "P131", "Q2");
+            var kinds = extracted(e).events().stream().map(Event::kind).toList();
+            assertTrue(kinds.contains(Kind.HAPPENED), kinds.toString());
+            assertTrue(kinds.contains(Kind.FOUNDED), kinds.toString());
+        }
+
+        @Test
+        void omarMetwallyKeepsDiedButLosesBorn() {
+            ObjectNode e = withId("Q553338");
+            Synthetic.date(e, "P569", "+0001-00-00T00:00:00Z", 9);
+            Synthetic.place(e, "P19", "Q1");
+            Synthetic.date(e, "P570", "+2000-05-01T00:00:00Z", 11);
+            Synthetic.place(e, "P20", "Q2");
+            var item = extracted(e);
+            assertKinds(item, Kind.DIED);
+            assertAt(event(item, Kind.DIED), "Q2");
+        }
+
+        @Test
+        void onlyEventExcludedGivesNothing() {
+            ObjectNode e = withId("Q553338");
+            Synthetic.date(e, "P569", "+0001-00-00T00:00:00Z", 9);
+            Synthetic.place(e, "P19", "Q1");
+            assertNothing(e);
+        }
+    }
 }

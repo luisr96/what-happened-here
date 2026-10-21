@@ -494,4 +494,53 @@ class ItemFactsTest {
     void humanTypeDoesNotOverrideArtwork() {
         assertTrue(ItemFacts.isArtwork(List.of("Q5", "Q3305213")));
     }
+
+    @Test
+    void muhammadInMedinaHappenedIsExcluded() {
+        assertTrue(ItemFacts.isExcludedEvent("Q4086877", Event.Kind.HAPPENED));
+    }
+
+    @Test
+    void omarMetwallyBornIsExcluded() {
+        assertTrue(ItemFacts.isExcludedEvent("Q553338", Event.Kind.BORN));
+    }
+
+    @Test
+    void excludingOneKindLeavesOtherKindsOfTheSameItem() {
+        assertFalse(ItemFacts.isExcludedEvent("Q553338", Event.Kind.DIED));
+    }
+
+    @Test
+    void unlistedItemIsNotExcluded() {
+        assertFalse(ItemFacts.isExcludedEvent("Q42", Event.Kind.BORN));
+    }
+
+    @Test
+    void excludedEventsFileIsWellFormed() throws java.io.IOException {
+        java.io.InputStream in = ItemFacts.class.getResourceAsStream("/excluded-events.tsv");
+        assertTrue(in != null, "excluded-events.tsv missing from the classpath");
+        List<String> lines;
+        try (var reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8))) {
+            lines = reader.lines().toList();
+        }
+        var kinds = java.util.Arrays.stream(Event.Kind.values()).map(Enum::name).toList();
+        var seen = new java.util.HashSet<String>();
+        int entries = 0;
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (line.isBlank() || line.startsWith("#")) {
+                continue;
+            }
+            String where = "line " + (i + 1) + ": " + line;
+            String[] fields = line.split("	", -1);
+            assertEquals(3, fields.length, where);
+            assertTrue(fields[0].matches("Q[0-9]+"), where);
+            assertTrue(kinds.contains(fields[1]), where);
+            assertFalse(fields[2].isBlank(), where);
+            assertTrue(seen.add(fields[0] + "	" + fields[1]), "duplicate " + where);
+            entries++;
+        }
+        assertTrue(entries >= 2, "expected at least the two known entries");
+    }
 }
