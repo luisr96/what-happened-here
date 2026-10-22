@@ -43,6 +43,9 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
       APP_CORS_ALLOWED_ORIGINS: https://luisr96.github.io
+      # Trust Caddy's X-Forwarded-* headers so generated URLs (the OpenAPI "servers" entry that
+      # Swagger UI's "Try it out" calls) use https and the public host, not http://api:8080.
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
       # The Wikidata dump the database was imported from, shown in the About dialog.
       APP_DATA_DUMP_DATE: "2026-10-12"
     # The image sizes its heap at 75% of this limit.
