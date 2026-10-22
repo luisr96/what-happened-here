@@ -28,6 +28,7 @@ export function AboutNumbers({ stats }: AboutNumbersProps) {
     .sort((a, b) => b.count - a.count);
   // Shares of the kinds' own sum, so the slices always add up to the whole bar.
   const total = Math.max(1, kinds.reduce((sum, { count }) => sum + count, 0));
+  const spanEnd = dumpDate === null ? "today" : shortDate(dumpDate);
   return (
     <section className="about__numbers" aria-label="The data in numbers">
       <div className="about__totals">
@@ -39,7 +40,7 @@ export function AboutNumbers({ stats }: AboutNumbersProps) {
         </p>
         {earliestYear !== null && (
           <p className="about__stat">
-            <strong>{spanStart(earliestYear)}</strong> to today
+            <strong>{spanStart(earliestYear)}</strong> to {spanEnd}
           </p>
         )}
       </div>
@@ -65,9 +66,6 @@ export function AboutNumbers({ stats }: AboutNumbersProps) {
           </li>
         ))}
       </ul>
-      {dumpDate !== null && (
-        <p className="about__note">From the Wikidata dump of {dumpDateInWords(dumpDate)}.</p>
-      )}
     </section>
   );
 }
@@ -77,9 +75,9 @@ function spanStart(year: number): string {
   return year < 0 ? `${NUMBER.format(-year)} BC` : String(year);
 }
 
-/** "2026-10-12" → "12 October 2026"; a plain calendar date, so read in UTC to avoid shifting. */
-function dumpDateInWords(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", {
-    day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+/** "2026-10-12" → "Oct 12, 2026"; a plain calendar date, so read in UTC to avoid shifting. */
+function shortDate(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric", timeZone: "UTC",
   });
 }

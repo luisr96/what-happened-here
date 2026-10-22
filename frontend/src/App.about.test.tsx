@@ -87,10 +87,10 @@ describe("About dialog", () => {
     }
   });
 
-  it('shows the time span from the BC earliest year to "today", ignoring latestYear', async () => {
+  it("shows the time span from the BC earliest year to the dump date, ignoring latestYear", async () => {
     renderApp();
     const { dialog } = await openAbout();
-    expect(await within(dialog).findByText(stat(/10,000 BC to today/))).toBeInTheDocument();
+    expect(await within(dialog).findByText(stat(/10,000 BC to Oct 12, 2026/))).toBeInTheDocument();
     expect(dialog).not.toHaveTextContent(/2100/);
   });
 
@@ -98,22 +98,15 @@ describe("About dialog", () => {
     server.use(http.get("*/api/stats/summary", () => HttpResponse.json({ ...statsSummary, earliestYear: 1066 })));
     renderApp();
     const { dialog } = await openAbout();
-    expect(await within(dialog).findByText(stat(/1066 to today/))).toBeInTheDocument();
-    expect(dialog).not.toHaveTextContent(/BC to today/);
+    expect(await within(dialog).findByText(stat(/1066 to Oct 12, 2026/))).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent(/BC to/);
   });
 
-  it("names the Wikidata dump date in words", async () => {
-    renderApp();
-    const { dialog } = await openAbout();
-    expect(await within(dialog).findByText(/Wikidata dump of 12 October 2026/)).toBeInTheDocument();
-  });
-
-  it("omits the dump date when dumpDate is null", async () => {
+  it('ends the time span at "today" when dumpDate is null', async () => {
     server.use(http.get("*/api/stats/summary", () => HttpResponse.json({ ...statsSummary, dumpDate: null })));
     renderApp();
     const { dialog } = await openAbout();
-    await within(dialog).findByText(stat(/5,720,295 events/));
-    expect(dialog).not.toHaveTextContent(/dump of/);
+    expect(await within(dialog).findByText(stat(/10,000 BC to today/))).toBeInTheDocument();
     expect(dialog).not.toHaveTextContent(/null/);
   });
 

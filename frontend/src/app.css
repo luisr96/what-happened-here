@@ -338,12 +338,6 @@ body,
   font-variant-numeric: tabular-nums;
 }
 
-.about__dialog .about__note {
-  margin-top: 14px;
-  color: var(--text-muted);
-  font-size: var(--fs-small);
-}
-
 .about__section {
   margin-top: 22px;
 }
@@ -385,6 +379,12 @@ body,
 .about__tech svg {
   flex: none;
   color: var(--text-secondary);
+}
+
+/* A line box as tall as the font, so centring the name centres its letters, not the
+   leading below them, and the name sits level with the icon. */
+.about__tech-name {
+  line-height: 1;
 }
 
 .about__footer {

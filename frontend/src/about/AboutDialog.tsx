@@ -118,7 +118,7 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
                   <path d={icon.path} fill="currentColor" />
                 </svg>
-                {name}
+                <span className="about__tech-name">{name}</span>
               </li>
             ))}
           </ul>
